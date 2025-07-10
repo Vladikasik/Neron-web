@@ -1,27 +1,26 @@
-import { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { X, Minimize2, Send, Copy, Terminal, Bot, User, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { useState, useRef, useCallback, useImperativeHandle, forwardRef, useEffect } from 'react';
+import { Minus, GripHorizontal, GripVertical } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
-interface ConsoleMessage {
-  id: string;
-  type: 'user' | 'assistant' | 'system' | 'mcp_tool' | 'error';
+export interface ConsoleMessage {
+  type: 'user' | 'assistant' | 'system' | 'error';
   content: string;
-  timestamp: Date;
-  toolName?: string;
+  timestamp?: Date;
   isError?: boolean;
-  metadata?: Record<string, unknown>;
 }
 
 interface ConsoleProps {
   isVisible: boolean;
   onToggle: () => void;
-  onSendMessage?: (message: string) => Promise<string>;
+  onSendMessage: (message: string) => Promise<string>;
   className?: string;
 }
 
 export interface ConsoleRef {
-  addMessage: (message: Omit<ConsoleMessage, 'id' | 'timestamp'>) => void;
-  clearMessages: () => void;
+  addMessage: (message: ConsoleMessage) => void;
   focus: () => void;
 }
 
@@ -29,59 +28,51 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
   isVisible,
   onToggle,
   onSendMessage,
-  className
+  className = ''
 }, ref) => {
   const [messages, setMessages] = useState<ConsoleMessage[]>([]);
   const [input, setInput] = useState('');
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [position, setPosition] = useState({ x: 20, y: window.innerHeight - 400 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Minimal size and positioning
+  const [position, setPosition] = useState({ x: 8, y: window.innerHeight - 180 });
+  const [size, setSize] = useState({ width: 280, height: 140 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
   const consoleRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<HTMLDivElement>(null);
-  const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<HTMLDivElement>(null);
 
   useImperativeHandle(ref, () => ({
-    addMessage: (message: Omit<ConsoleMessage, 'id' | 'timestamp'>) => {
-      const newMessage: ConsoleMessage = {
-        ...message,
-        id: Date.now().toString() + Math.random().toString(36),
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, newMessage]);
-    },
-    clearMessages: () => {
-      setMessages([]);
+    addMessage: (message: ConsoleMessage) => {
+      setMessages(prev => [...prev, { ...message, timestamp: new Date() }]);
+      setTimeout(() => {
+        if (messagesRef.current) {
+          messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+        }
+      }, 100);
     },
     focus: () => {
       inputRef.current?.focus();
     }
   }));
 
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (messagesRef.current) {
-      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  // Update position when window resizes
-  useEffect(() => {
-    const handleResize = () => {
-      setPosition(prev => ({
-        x: Math.min(prev.x, window.innerWidth - 400),
-        y: Math.min(prev.y, window.innerHeight - 200)
-      }));
+  // Keep console within bounds
+  const keepInBounds = useCallback((newPos: { x: number; y: number }, newSize: { width: number; height: number }) => {
+    const maxX = window.innerWidth - newSize.width;
+    const maxY = window.innerHeight - newSize.height;
+    
+    return {
+      x: Math.max(0, Math.min(newPos.x, maxX)),
+      y: Math.max(0, Math.min(newPos.y, maxY))
     };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mouse handlers for dragging
+  // Drag handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.target === dragRef.current || dragRef.current?.contains(e.target as Node)) {
       setIsDragging(true);
@@ -97,20 +88,46 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
   }, []);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (isDragging) {
-      setPosition({
-        x: Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth - 400)),
-        y: Math.max(0, Math.min(e.clientY - dragOffset.y, window.innerHeight - 200))
-      });
+    if (isDragging && !isResizing) {
+      const newPos = {
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      };
+      setPosition(keepInBounds(newPos, size));
+    } else if (isResizing) {
+      const deltaX = e.clientX - resizeStart.x;
+      const deltaY = e.clientY - resizeStart.y;
+      
+      const newSize = {
+        width: Math.max(200, resizeStart.width + deltaX),
+        height: Math.max(80, resizeStart.height + deltaY)
+      };
+      
+      setSize(newSize);
+      setPosition(prev => keepInBounds(prev, newSize));
     }
-  }, [isDragging, dragOffset]);
+  }, [isDragging, isResizing, dragOffset, resizeStart, keepInBounds, size]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
+    setIsResizing(false);
   }, []);
 
+  // Resize handlers
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    setIsResizing(true);
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: size.width,
+      height: size.height
+    });
+    e.preventDefault();
+    e.stopPropagation();
+  }, [size]);
+
   useEffect(() => {
-    if (isDragging) {
+    if (isDragging || isResizing) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       return () => {
@@ -118,42 +135,33 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
         document.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
-  const handleSendMessage = async () => {
-    if (!input.trim() || !onSendMessage || isLoading) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
     setInput('');
+    setIsLoading(true);
 
-    // Add user message
-    const userMsgId = Date.now().toString();
     setMessages(prev => [...prev, {
-      id: userMsgId,
       type: 'user',
       content: userMessage,
       timestamp: new Date()
     }]);
 
-    setIsLoading(true);
-
     try {
-      // Send message and get response
       const response = await onSendMessage(userMessage);
-
-      // Add assistant response
       setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
         type: 'assistant',
         content: response,
         timestamp: new Date()
       }]);
     } catch (error) {
-      // Add error message
       setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
         type: 'error',
-        content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        content: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date(),
         isError: true
       }]);
@@ -162,238 +170,128 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+  const getMessageTypeColor = (type: ConsoleMessage['type']) => {
+    switch (type) {
+      case 'user': return 'text-blue-400';
+      case 'assistant': return 'text-green-400';
+      case 'system': return 'text-yellow-400';
+      case 'error': return 'text-red-400';
+      default: return 'text-muted-foreground';
     }
   };
 
-  const copyToClipboard = (content: string) => {
-    navigator.clipboard.writeText(content);
-  };
-
-  const formatTimestamp = (timestamp: Date) => {
-    return timestamp.toLocaleTimeString('en-US', { 
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { 
       hour12: false, 
       hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
+      minute: '2-digit',
+      second: '2-digit'
     });
-  };
-
-  const getMessageIcon = (type: ConsoleMessage['type']) => {
-    switch (type) {
-      case 'user': return <User size={14} className="matrix-text" />;
-      case 'assistant': return <Bot size={14} className="matrix-text" />;
-      case 'system': return <Terminal size={14} className="matrix-text" />;
-      case 'mcp_tool': return <CheckCircle size={14} className="text-blue-400" />;
-      case 'error': return <AlertCircle size={14} className="text-red-400" />;
-      default: return <Terminal size={14} className="matrix-text" />;
-    }
-  };
-
-  const getMessageClass = (type: ConsoleMessage['type']) => {
-    switch (type) {
-      case 'user': return 'bg-primary/10 border-primary/20';
-      case 'assistant': return 'bg-accent/10 border-accent/20';
-      case 'system': return 'bg-muted/10 border-muted/20';
-      case 'mcp_tool': return 'bg-blue-500/10 border-blue-500/20';
-      case 'error': return 'bg-red-500/10 border-red-500/20';
-      default: return 'bg-accent/5 border-accent/10';
-    }
   };
 
   if (!isVisible) return null;
 
-  if (isMinimized) {
-    return (
-      <div
-        ref={consoleRef}
-        className={cn(
-          "fixed z-40 rounded-lg shadow-lg",
-          "w-48 p-2 cursor-move",
-          className
-        )}
-        style={{ 
-          left: position.x, 
-          top: position.y,
-          backgroundColor: '#000',
-          borderColor: '#00ff41',
-          border: '1px solid #00ff41',
-          color: '#00ff41'
-        }}
-        onMouseDown={handleMouseDown}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Terminal size={14} className="matrix-text" />
-            <span className="text-sm font-medium matrix-text">Console</span>
-          </div>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setIsMinimized(false)}
-              className="p-1 hover:bg-accent rounded matrix-text"
-            >
-              <Terminal size={12} />
-            </button>
-            <button
-              onClick={onToggle}
-              className="p-1 hover:bg-accent rounded matrix-text"
-            >
-              <X size={12} />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div
+    <Card
       ref={consoleRef}
       className={cn(
-        "fixed z-40 rounded-lg shadow-xl",
-        "w-96 h-80 max-w-[90vw] max-h-[60vh] flex flex-col",
-        isDragging && "select-none",
+        'fixed z-40 bg-black/90 border-green-500/30 shadow-lg shadow-green-500/20',
+        'backdrop-blur-sm matrix-card text-green-400 overflow-hidden',
+        'transition-all duration-200',
         className
       )}
-      style={{ 
-        left: position.x, 
+      style={{
+        left: position.x,
         top: position.y,
-        backgroundColor: '#000',
-        borderColor: '#00ff41',
-        border: '1px solid #00ff41',
-        color: '#00ff41'
+        width: size.width,
+        height: size.height,
+        minWidth: 200,
+        minHeight: 80
       }}
+      onMouseDown={handleMouseDown}
     >
-      {/* Header */}
+      {/* Minimal Header */}
       <div
         ref={dragRef}
-        className="flex items-center justify-between p-3 border-b matrix-border cursor-move bg-accent/5"
-        onMouseDown={handleMouseDown}
+        className="flex items-center justify-between px-1 py-0.5 bg-green-500/10 border-b border-green-500/30 cursor-move"
       >
-        <div className="flex items-center gap-2">
-          <Terminal size={16} className="matrix-text" />
-          <h3 className="font-semibold matrix-text">Console</h3>
-          <span className="text-xs text-muted-foreground">
-            {messages.length} messages
-          </span>
-        </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setMessages([])}
-            className="p-1 hover:bg-accent rounded matrix-text text-xs"
-          >
-            Clear
-          </button>
-          <button
-            onClick={() => setIsMinimized(true)}
-            className="p-1 hover:bg-accent rounded matrix-text"
-          >
-            <Minimize2 size={14} />
-          </button>
-          <button
+          <div className="w-1 h-1 bg-green-400 rounded-full"></div>
+          <span className="text-[9px] font-mono text-green-400">console</span>
+        </div>
+        
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onToggle}
-            className="p-1 hover:bg-accent rounded matrix-text"
+            className="h-3 w-3 p-0 hover:bg-green-500/20 text-green-400"
           >
-            <X size={14} />
-          </button>
+            <Minus size={8} />
+          </Button>
         </div>
       </div>
 
-      {/* Messages */}
-      <div
+      {/* Messages Area */}
+      <div 
         ref={messagesRef}
-        className="flex-1 overflow-y-auto p-3 space-y-2 text-sm"
+        className="flex-1 overflow-y-auto px-1 py-0.5 space-y-0.5 text-[9px] font-mono leading-tight"
+        style={{ height: size.height - 60 }}
       >
-        {messages.length === 0 ? (
-          <div className="text-center text-muted-foreground py-8">
-            <Terminal size={32} className="mx-auto mb-2 opacity-50" />
-            <p>Console ready. Send a message to get started.</p>
+        {messages.slice(-50).map((message, index) => (
+          <div key={index} className="flex items-start gap-1">
+            <span className="text-green-600/60 text-[8px] min-w-[40px]">
+              {message.timestamp ? formatTime(message.timestamp) : ''}
+            </span>
+            <span className="text-green-600/40 text-[8px] min-w-[8px]">
+              {message.type === 'user' ? '>' : message.type === 'system' ? '●' : '◦'}
+            </span>
+            <span className={cn('flex-1 break-words', getMessageTypeColor(message.type))}>
+              {message.content}
+            </span>
           </div>
-        ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "p-3 rounded border",
-                getMessageClass(message.type)
-              )}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  {getMessageIcon(message.type)}
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {message.type}
-                    {message.toolName && ` (${message.toolName})`}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock size={10} className="text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">
-                    {formatTimestamp(message.timestamp)}
-                  </span>
-                  <button
-                    onClick={() => copyToClipboard(message.content)}
-                    className="p-0.5 hover:bg-accent rounded"
-                  >
-                    <Copy size={10} className="text-muted-foreground" />
-                  </button>
-                </div>
-              </div>
-              <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
-                {message.content}
-              </pre>
-              {message.metadata && (
-                <details className="mt-2">
-                  <summary className="text-xs text-muted-foreground cursor-pointer">
-                    Metadata
-                  </summary>
-                  <pre className="text-xs text-muted-foreground mt-1">
-                    {JSON.stringify(message.metadata, null, 2)}
-                  </pre>
-                </details>
-              )}
-            </div>
-          ))
-        )}
+        ))}
         {isLoading && (
-          <div className="p-3 rounded border bg-accent/5 border-accent/10">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-matrix-green border-t-transparent rounded-full animate-spin" />
-              <span className="text-xs text-muted-foreground">AI is thinking...</span>
-            </div>
+          <div className="flex items-center gap-1">
+            <span className="text-green-600/60 text-[8px] min-w-[40px]">
+              {formatTime(new Date())}
+            </span>
+            <span className="text-green-600/40 text-[8px]">●</span>
+            <span className="text-yellow-400 text-[9px] animate-pulse">processing...</span>
           </div>
         )}
       </div>
 
-      {/* Input */}
-      <div className="p-3 border-t matrix-border">
-        <div className="flex gap-2">
-          <input
+      {/* Minimal Input */}
+      <form onSubmit={handleSubmit} className="border-t border-green-500/30 p-1">
+        <div className="flex items-center gap-1">
+          <span className="text-green-400 text-[9px] font-mono">{'>'}</span>
+          <Input
             ref={inputRef}
-            type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Send a message to AI..."
-            className="flex-1 px-3 py-2 bg-background border matrix-border rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            placeholder="command..."
             disabled={isLoading}
+            className="flex-1 h-4 bg-transparent border-none text-[9px] font-mono text-green-400 placeholder-green-600/50 focus:ring-0 focus:ring-offset-0 p-0"
           />
-          <button
-            onClick={handleSendMessage}
-            disabled={!input.trim() || isLoading}
-            className="px-3 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Send size={14} />
-          </button>
         </div>
-        <div className="text-xs text-muted-foreground mt-1">
-          Press Enter to send, Shift+Enter for new line
-        </div>
+      </form>
+
+      {/* Resize Handles */}
+      <div
+        className="absolute bottom-0 right-0 w-2 h-2 cursor-se-resize opacity-30 hover:opacity-60 transition-opacity"
+        onMouseDown={handleResizeStart}
+      >
+        <GripVertical size={8} className="text-green-400" />
       </div>
-    </div>
+      
+      <div
+        className="absolute bottom-0 right-2 left-2 h-1 cursor-s-resize opacity-20 hover:opacity-40 transition-opacity flex justify-center"
+        onMouseDown={handleResizeStart}
+      >
+        <GripHorizontal size={6} className="text-green-400" />
+      </div>
+    </Card>
   );
 });
 

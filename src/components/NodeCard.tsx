@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Minimize2, Maximize2, Move, Eye, ArrowRight, ArrowLeft, Tag, Link } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { X, Eye, ArrowRight, ArrowLeft, Link } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import type { GraphNode, GraphLink, NodeSelection } from '../types/graph';
 
 interface NodeCardProps {
@@ -8,7 +12,6 @@ interface NodeCardProps {
   allNodes: GraphNode[];
   allLinks: GraphLink[];
   onClose: () => void;
-  onMinimize?: () => void;
   onMaximize?: () => void;
   onNodeClick?: (nodeId: string) => void;
   isMinimized?: boolean;
@@ -26,10 +29,7 @@ const NodeCard: React.FC<NodeCardProps> = ({
   allNodes,
   allLinks,
   onClose,
-  onMinimize,
-  onMaximize,
   onNodeClick,
-  isMinimized = false,
   className
 }) => {
   const [position, setPosition] = useState({
@@ -138,131 +138,134 @@ const NodeCard: React.FC<NodeCardProps> = ({
     }
   };
 
-  if (isMinimized) {
-    return (
-      <div
-        ref={cardRef}
-        className={cn(
-          "fixed z-50 rounded-lg shadow-lg",
-          "w-48 p-2 cursor-move",
-          className
-        )}
-        style={{ 
-          left: position.x, 
-          top: position.y,
-          backgroundColor: '#000',
-          borderColor: '#00ff41',
-          border: '1px solid #00ff41',
-          color: '#00ff41'
-        }}
-        onMouseDown={handleMouseDown}
-      >
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium matrix-text truncate">{node.name}</span>
-          <div className="flex gap-1">
-            {onMaximize && (
-              <button
-                onClick={onMaximize}
-                className="p-1 hover:bg-accent rounded matrix-text"
-              >
-                <Maximize2 size={12} />
-              </button>
-            )}
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-accent rounded matrix-text"
-            >
-              <X size={12} />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div
+    <Card
       ref={cardRef}
       className={cn(
-        "fixed z-50 rounded-lg shadow-xl",
-        "w-96 max-w-[90vw] max-h-[80vh] overflow-hidden flex flex-col",
-        isDragging && "select-none",
+        'fixed z-30 w-60 shadow-lg border bg-card/95 backdrop-blur-sm matrix-card',
+        'transition-all duration-200',
+        isDragging && 'cursor-grabbing select-none',
         className
       )}
-      style={{ 
-        left: position.x, 
+      style={{
+        left: position.x,
         top: position.y,
-        backgroundColor: '#000',
-        borderColor: '#00ff41',
-        border: '1px solid #00ff41',
-        color: '#00ff41'
+        transform: 'translate(0, 0)'
       }}
+      onMouseDown={handleMouseDown}
     >
-      {/* Header */}
-      <div
-        ref={dragRef}
-        className="flex items-center justify-between p-4 border-b matrix-border cursor-move bg-accent/5"
-        onMouseDown={handleMouseDown}
-      >
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Move size={16} className="matrix-text flex-shrink-0" />
-          <div className="min-w-0 flex-1">
-            <h3 className="font-semibold matrix-text truncate">{node.name}</h3>
-            <p className="text-sm text-muted-foreground">{node.type}</p>
+      {/* Minimal Header */}
+      <CardHeader className="p-1">
+        <div
+          ref={dragRef}
+          className="flex items-center justify-between cursor-move"
+        >
+          <div className="flex items-center gap-1 min-w-0 flex-1">
+            <div
+              className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ backgroundColor: node.color || 'hsl(var(--primary))' }}
+            />
+            <div className="min-w-0 flex-1">
+              <h3 className="font-medium text-[9px] truncate">{node.name}</h3>
+              <div className="text-[7px] text-muted-foreground">
+                {node.type} • Layer: {node.layer?.name || 'Default'}
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-1">
-          {onMinimize && (
-            <button
-              onClick={onMinimize}
-              className="p-1 hover:bg-accent rounded matrix-text"
+          
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-3 w-3 p-0 hover:bg-destructive/20"
             >
-              <Minimize2 size={16} />
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-accent rounded matrix-text"
-          >
-            <X size={16} />
-          </button>
+              <X size={6} />
+            </Button>
+          </div>
         </div>
-      </div>
+      </CardHeader>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Connection Summary */}
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="p-2 bg-accent/10 rounded matrix-border">
-            <div className="text-lg font-bold matrix-text">{incoming.length}</div>
-            <div className="text-xs text-muted-foreground">Incoming</div>
+      <CardContent className="p-1 space-y-1">
+        {/* Node Stats */}
+        <div className="grid grid-cols-3 gap-1 text-center">
+          <div className="bg-card/30 rounded p-1">
+            <div className="text-[8px] font-medium">{incoming.length}</div>
+            <div className="text-[6px] text-muted-foreground">In</div>
           </div>
-          <div className="p-2 bg-accent/10 rounded matrix-border">
-            <div className="text-lg font-bold matrix-text">{outgoing.length}</div>
-            <div className="text-xs text-muted-foreground">Outgoing</div>
+          <div className="bg-card/30 rounded p-1">
+            <div className="text-[8px] font-medium">{outgoing.length}</div>
+            <div className="text-[6px] text-muted-foreground">Out</div>
           </div>
-          <div className="p-2 bg-accent/10 rounded matrix-border">
-            <div className="text-lg font-bold matrix-text">{totalConnections}</div>
-            <div className="text-xs text-muted-foreground">Total</div>
+          <div className="bg-card/30 rounded p-1">
+            <div className="text-[8px] font-medium">{totalConnections}</div>
+            <div className="text-[6px] text-muted-foreground">Total</div>
           </div>
         </div>
 
         {/* Tags */}
-        {extractedTags.length > 0 && (
+        {(extractedTags.length > 0 || node.tags?.length > 0) && (
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Tag size={16} className="matrix-text" />
-              <h4 className="font-medium matrix-text">Tags</h4>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {extractedTags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="px-2 py-1 bg-primary/20 text-primary rounded-full text-xs matrix-border"
-                >
+            <h4 className="text-[8px] font-medium mb-0.5 flex items-center gap-1">
+              Tags ({(node.tags?.length || 0) + extractedTags.length})
+            </h4>
+            <div className="flex flex-wrap gap-0.5">
+              {node.tags?.slice(0, 3).map((tag, index) => (
+                <Badge key={index} variant="default" className="text-[6px] px-1 py-0">
+                  {tag.name}
+                </Badge>
+              )) || []}
+              {extractedTags.slice(0, 2).map((tag, index) => (
+                <Badge key={`extracted-${index}`} variant="outline" className="text-[6px] px-1 py-0">
                   {tag}
-                </span>
+                </Badge>
               ))}
+              {((node.tags?.length || 0) + extractedTags.length) > 5 && (
+                <Badge variant="secondary" className="text-[6px] px-1 py-0">
+                  +{((node.tags?.length || 0) + extractedTags.length) - 5}
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+
+        <Separator className="my-1" />
+
+        {/* Outgoing Links */}
+        {outgoing.length > 0 && (
+          <div>
+            <h4 className="text-[8px] font-medium mb-0.5 flex items-center gap-0.5">
+              <ArrowRight size={6} />
+              To ({outgoing.length})
+            </h4>
+            <div className="space-y-0.5">
+              {outgoing.slice(0, 2).map((link, index) => (
+                <Card
+                  key={index}
+                  className="p-1 bg-card/30 hover:bg-card/50 transition-colors cursor-pointer border"
+                  onClick={() => handleNodeLinkClick(link.targetNode.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-0.5 min-w-0 flex-1">
+                      <div
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: link.targetNode.color || 'hsl(var(--primary))' }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[8px] font-medium truncate">{link.targetNode.name}</div>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-[6px] px-1 py-0">
+                      {link.relationType}
+                    </Badge>
+                  </div>
+                </Card>
+              ))}
+              {outgoing.length > 2 && (
+                <div className="text-[7px] text-muted-foreground text-center">
+                  +{outgoing.length - 2} more
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -270,104 +273,107 @@ const NodeCard: React.FC<NodeCardProps> = ({
         {/* Incoming Links */}
         {incoming.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <ArrowLeft size={16} className="matrix-text" />
-              <h4 className="font-medium matrix-text">Incoming Links ({incoming.length})</h4>
-            </div>
-            <div className="space-y-2">
-              {incoming.map((link, index) => (
-                <div
+            <h4 className="text-[8px] font-medium mb-0.5 flex items-center gap-0.5">
+              <ArrowLeft size={6} />
+              From ({incoming.length})
+            </h4>
+            <div className="space-y-0.5">
+              {incoming.slice(0, 2).map((link, index) => (
+                <Card
                   key={index}
-                  className="flex items-center justify-between p-2 bg-accent/5 rounded matrix-border hover:bg-accent/10 transition-colors cursor-pointer"
+                  className="p-1 bg-card/30 hover:bg-card/50 transition-colors cursor-pointer border"
                   onClick={() => handleNodeLinkClick(link.targetNode.id)}
                 >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: link.targetNode.color || '#00ff41' }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium matrix-text truncate">{link.targetNode.name}</div>
-                      <div className="text-xs text-muted-foreground">{link.targetNode.type}</div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-0.5 min-w-0 flex-1">
+                      <div
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: link.targetNode.color || 'hsl(var(--primary))' }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[8px] font-medium truncate">{link.targetNode.name}</div>
+                      </div>
                     </div>
+                    <Badge variant="secondary" className="text-[6px] px-1 py-0">
+                      {link.relationType}
+                    </Badge>
                   </div>
-                  <div className="text-xs text-muted-foreground px-2 py-1 bg-accent/10 rounded">
-                    {link.relationType}
-                  </div>
-                </div>
+                </Card>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Outgoing Links */}
-        {outgoing.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <ArrowRight size={16} className="matrix-text" />
-              <h4 className="font-medium matrix-text">Outgoing Links ({outgoing.length})</h4>
-            </div>
-            <div className="space-y-2">
-              {outgoing.map((link, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-2 bg-accent/5 rounded matrix-border hover:bg-accent/10 transition-colors cursor-pointer"
-                  onClick={() => handleNodeLinkClick(link.targetNode.id)}
-                >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: link.targetNode.color || '#00ff41' }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium matrix-text truncate">{link.targetNode.name}</div>
-                      <div className="text-xs text-muted-foreground">{link.targetNode.type}</div>
-                    </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground px-2 py-1 bg-accent/10 rounded">
-                    {link.relationType}
-                  </div>
+              {incoming.length > 2 && (
+                <div className="text-[7px] text-muted-foreground text-center">
+                  +{incoming.length - 2} more
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
 
         {/* Observations */}
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Eye size={16} className="matrix-text" />
-            <h4 className="font-medium matrix-text">Observations ({node.observations.length})</h4>
-          </div>
-          <div className="space-y-2">
-            {node.observations.map((observation, index) => (
-              <div
-                key={index}
-                className="p-3 bg-accent/5 rounded matrix-border text-sm leading-relaxed"
-              >
-                {observation}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Connection Details */}
-        {totalConnections > 0 && (
+        {node.observations.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Link size={16} className="matrix-text" />
-              <h4 className="font-medium matrix-text">Connection Summary</h4>
-            </div>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <div>• Connected to {new Set([...incoming.map(l => l.targetNode.id), ...outgoing.map(l => l.targetNode.id)]).size} unique nodes</div>
-              <div>• Relationship types: {Array.from(new Set([...incoming.map(l => l.relationType), ...outgoing.map(l => l.relationType)])).join(', ')}</div>
-              {incoming.length > 0 && <div>• Receives connections from: {incoming.map(l => l.targetNode.name).join(', ')}</div>}
-              {outgoing.length > 0 && <div>• Connects to: {outgoing.map(l => l.targetNode.name).join(', ')}</div>}
+            <h4 className="text-[8px] font-medium mb-0.5 flex items-center gap-0.5">
+              <Eye size={6} />
+              Notes ({node.observations.length})
+            </h4>
+            <div className="space-y-0.5">
+              {node.observations.slice(0, 2).map((obs, index) => (
+                <Card key={index} className="p-1 bg-card/30 border">
+                  <div className="text-[7px] text-muted-foreground leading-tight">
+                    {obs.length > 80 ? `${obs.substring(0, 80)}...` : obs}
+                  </div>
+                </Card>
+              ))}
+              {node.observations.length > 2 && (
+                <div className="text-[7px] text-muted-foreground text-center">
+                  +{node.observations.length - 2} more notes
+                </div>
+              )}
             </div>
           </div>
         )}
-      </div>
-    </div>
+
+        {/* Enhanced Metadata */}
+        {node.metadata && (
+          <>
+            <Separator className="my-1" />
+            <div>
+              <h4 className="text-[8px] font-medium mb-0.5">Metadata</h4>
+              <div className="grid grid-cols-2 gap-1 text-[7px]">
+                <div>
+                  <span className="text-muted-foreground">Importance:</span>
+                  <span className="ml-1 font-medium">{node.metadata.importance || 5}/10</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Keywords:</span>
+                  <span className="ml-1 font-medium">{node.metadata.keywords?.length || 0}</span>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Connection Summary */}
+        {totalConnections > 0 && (
+          <>
+            <Separator className="my-1" />
+            <div>
+              <h4 className="text-[8px] font-medium mb-0.5 flex items-center gap-0.5">
+                <Link size={6} />
+                Summary
+              </h4>
+              <Card className="p-1 bg-card/30 border">
+                <div className="text-[7px] text-muted-foreground space-y-0">
+                  <div>• {new Set([...incoming.map(l => l.targetNode.id), ...outgoing.map(l => l.targetNode.id)]).size} unique connections</div>
+                  <div>• Types: {Array.from(new Set([...incoming.map(l => l.relationType), ...outgoing.map(l => l.relationType)])).slice(0, 2).join(', ')}</div>
+                  {node.layer && <div>• Layer: {node.layer.name}</div>}
+                </div>
+              </Card>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

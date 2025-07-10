@@ -73,24 +73,25 @@ export class MCPClient {
 
 # Available MCP Tools:
 - read_graph() - Get complete graph structure 
-- find_nodes(names) - Find specific nodes by name
+- find_nodes(names) - Highlight specific nodes by name
 - create_entities(entities) - Create new entities
 - create_relations(relations) - Create relationships
 - add_observations(observations) - Add observations
 
 # When to Use MCP Tools:
 - Use read_graph() when user asks to see/load/refresh the complete graph
-- Use find_nodes() when user wants to find/search specific nodes  
+- Use find_nodes() when user wants to highlight/focus on specific nodes  
 - Use create_entities() when user wants to add new concepts/nodes
 - Use create_relations() when user wants to connect entities
 
-# Guidelines:
-- You can answer questions without using tools when appropriate
-- Use tools when the user explicitly requests graph operations
-- When you use read_graph() or find_nodes(), the user's graph will update automatically
-- Provide helpful responses whether you use tools or not
+# Efficiency Guidelines:
+- MINIMIZE tool usage - use only ONE tool per request when possible
+- For highlighting known nodes: use ONLY find_nodes() (don't search first)
+- For showing full graph: use ONLY read_graph()
+- Don't chain multiple tools unnecessarily (avoid search_nodes + read_graph + find_nodes)
+- Answer conversationally without tools when graph operations aren't needed
 
-Feel free to have normal conversations and only use MCP tools when they're actually needed for graph operations.`;
+When you use tools, the user's graph will update automatically.`;
 
   async connect(): Promise<boolean> {
     debugLog('Connection', 'Testing MCP connection...');
@@ -422,45 +423,27 @@ Feel free to have normal conversations and only use MCP tools when they're actua
         toolNames: mcpToolUses.map(t => t.name)
       });
 
-      // DETAILED LOGGING: Log actual tool uses and results
+      // Log tool usage summary
       if (mcpToolUses.length > 0) {
-        debugLog('Process', 'DETAILED TOOL USES DETECTED:', mcpToolUses);
-        mcpToolUses.forEach((toolUse, index) => {
-          debugLog('Process', `Tool Use ${index + 1}:`, {
-            id: toolUse.id,
-            name: toolUse.name,
-            server_name: toolUse.server_name,
-            input: toolUse.input
-          });
-        });
+        debugLog('Process', 'Tool uses detected:', mcpToolUses.map(t => t.name));
       }
 
       if (mcpToolResults.length > 0) {
-        debugLog('Process', 'DETAILED TOOL RESULTS DETECTED:', mcpToolResults);
-        mcpToolResults.forEach((result, index) => {
-          debugLog('Process', `Tool Result ${index + 1}:`, {
-            tool_use_id: result.tool_use_id,
-            is_error: result.is_error,
-            content_length: result.content?.length || 0,
-            content_types: result.content?.map(c => c.type) || [],
-            first_100_chars: result.content?.[0]?.text?.substring(0, 100) + '...'
-          });
-        });
+        debugLog('Process', 'Tool results detected:', mcpToolResults.length);
       }
       
       // Process successful tool results
       if (mcpToolResults.length > 0) {
-        debugLog('Process', '🚀 STARTING TOOL RESULT PROCESSING...', {
+        debugLog('Process', 'Starting tool result processing', {
           toolResultCount: mcpToolResults.length,
-          toolUseCount: mcpToolUses.length,
-          timestamp: new Date().toISOString()
+          toolUseCount: mcpToolUses.length
         });
         
         try {
           await this.processToolResults(mcpToolResults, mcpToolUses);
-          debugLog('Process', '✅ TOOL RESULT PROCESSING COMPLETED SUCCESSFULLY');
+          debugLog('Process', 'Tool result processing completed successfully');
         } catch (error) {
-          debugLog('Process', '❌ ERROR IN TOOL RESULT PROCESSING:', error);
+          debugLog('Process', 'Error in tool result processing:', error);
           console.error('Tool result processing error:', error);
         }
       } else {
@@ -483,12 +466,9 @@ Feel free to have normal conversations and only use MCP tools when they're actua
   }
 
   private async processToolResults(results: MCPToolResult[], toolUses: MCPToolUse[]): Promise<void> {
-    console.log('🔥 PROCESS TOOL RESULTS CALLED!!!', { results: results.length, toolUses: toolUses.length });
-    debugLog('Process', '🔥 PROCESSING TOOL RESULTS STARTED:', { 
+    debugLog('Process', 'Processing tool results:', { 
       results: results.length, 
       toolUses: toolUses.length,
-      timestamp: new Date().toISOString(),
-      resultIds: results.map(r => r.tool_use_id),
       toolNames: toolUses.map(t => t.name)
     });
     
@@ -496,168 +476,115 @@ Feel free to have normal conversations and only use MCP tools when they're actua
       const result = results[i];
       const toolUse = toolUses.find(tu => tu.id === result.tool_use_id);
       
-      debugLog('Process', `Processing result ${i + 1}/${results.length}:`, {
-        tool_use_id: result.tool_use_id,
-        toolName: toolUse?.name || 'UNKNOWN',
-        is_error: result.is_error,
-        hasToolUse: !!toolUse
-      });
-      
       if (!toolUse || result.is_error) {
-        debugLog('Process', 'SKIPPING RESULT - missing tool use or error:', { 
+        debugLog('Process', 'Skipping result:', { 
           toolName: toolUse?.name, 
-          isError: result.is_error,
-          reason: !toolUse ? 'No matching tool use found' : 'Result has error flag'
+          isError: result.is_error
         });
         continue;
       }
       
-      debugLog('Process', 'Processing successful tool result:', { 
-        toolName: toolUse.name, 
-        toolId: toolUse.id,
-        resultContentLength: result.content?.length || 0
+      debugLog('Process', 'Processing result:', { 
+        toolName: toolUse.name
       });
       
       // Handle read_graph tool results
       if (toolUse.name === 'read_graph') {
-        debugLog('Process', '🔥 PROCESSING READ_GRAPH RESULT - updating cache...');
         try {
           const graphData = this.extractGraphDataFromToolResult(result);
-          debugLog('Process', 'Extracted graph data from read_graph:', {
-            nodes: graphData.nodes.length,
-            links: graphData.links.length,
-            nodeNames: graphData.nodes.map(n => n.name).slice(0, 3),
-            linkTypes: [...new Set(graphData.links.map(l => l.relationType))]
-          });
           
           if (graphData.nodes.length > 0) {
-            debugLog('Process', '💾 UPDATING CACHE with read_graph data...');
+            debugLog('Process', 'Updating cache with read_graph data');
             graphCache.set(CACHE_KEYS.FULL_GRAPH, graphData);
-            debugLog('Process', '✅ CACHE UPDATED - triggering graph reload event...');
             
             // Trigger graph reload event
             this.triggerGraphReload(graphData);
-            debugLog('Process', '🚀 GRAPH RELOAD EVENT TRIGGERED');
           } else {
-            debugLog('Process', '❌ NO NODES FOUND in read_graph result - skipping cache update');
+            debugLog('Process', 'No nodes found in read_graph result');
           }
         } catch (error) {
-          debugLog('Process', '❌ ERROR processing read_graph result:', error);
+          debugLog('Process', 'Error processing read_graph result:', error);
         }
       }
       
       // Handle find_nodes tool results
       else if (toolUse.name === 'find_nodes') {
-        debugLog('Process', '🎯 PROCESSING FIND_NODES RESULT - extracting nodes...');
         try {
-          const graphData = this.extractGraphDataFromToolResult(result);
-          debugLog('Process', 'Extracted graph data from find_nodes:', {
-            nodes: graphData.nodes.length,
-            nodeNames: graphData.nodes.map(n => n.name)
-          });
+          // For find_nodes, we just need the node names from the input, not the full graph data
+          const nodeNames = (toolUse.input as { names: string[] }).names;
           
-          if (graphData.nodes.length > 0) {
-            debugLog('Process', '🎯 TRIGGERING NODE HIGHLIGHTING...');
+          if (nodeNames && nodeNames.length > 0) {
+            debugLog('Process', 'Highlighting nodes:', nodeNames);
             
-            // Trigger node highlighting event
-            this.triggerNodeHighlighting(graphData);
-            debugLog('Process', '✅ NODE HIGHLIGHTING EVENT TRIGGERED');
+            // Trigger node highlighting event with just the node names
+            this.triggerNodeHighlightingByNames(nodeNames);
           } else {
-            debugLog('Process', '❌ NO NODES FOUND in find_nodes result');
+            debugLog('Process', 'No node names found in find_nodes input');
           }
         } catch (error) {
-          debugLog('Process', '❌ ERROR processing find_nodes result:', error);
+          debugLog('Process', 'Error processing find_nodes result:', error);
         }
       }
       
       // Handle other tool results
       else {
-        debugLog('Process', `ℹ️ Processing other tool result: ${toolUse.name} (no special handling)`);
+        debugLog('Process', `Processing other tool result: ${toolUse.name}`);
       }
     }
     
-    debugLog('Process', 'Tool result processing COMPLETED');
+    debugLog('Process', 'Tool result processing completed');
   }
   
   private extractGraphDataFromToolResult(result: MCPToolResult): GraphData {
-    console.log('🔥 EXTRACT GRAPH DATA FROM TOOL RESULT CALLED!!!', result);
-    debugLog('Extract', '🔥 EXTRACTING GRAPH DATA FROM TOOL RESULT...', {
+    debugLog('Extract', 'Extracting graph data from tool result:', {
       toolUseId: result.tool_use_id,
       isError: result.is_error,
-      contentLength: result.content?.length || 0,
-      content: result.content
+      contentLength: result.content?.length || 0
     });
     
     let combinedText = '';
     
     if (result.content) {
-      debugLog('Extract', `📊 Processing ${result.content.length} content blocks...`);
       for (const content of result.content) {
-        console.log('Content block processing:', content);
-        debugLog('Extract', 'Processing content block:', {
-          type: content.type,
-          hasText: !!content.text,
-          textLength: content.text?.length || 0,
-          rawContent: content
-        });
-        
         if (content.type === 'text' && content.text) {
           combinedText += content.text + '\n';
-          debugLog('Extract', '✅ Added text to combinedText:', {
-            addedLength: content.text.length,
-            totalLength: combinedText.length,
-            preview: content.text.substring(0, 200) + '...'
-          });
         }
       }
     } else {
-      debugLog('Extract', '❌ NO CONTENT FOUND in tool result');
+      debugLog('Extract', 'No content found in tool result');
     }
     
-    debugLog('Extract', 'Combined text extraction complete:', {
-      totalLength: combinedText.length,
-      hasContent: !!combinedText
-    });
-    
     if (!combinedText) {
-      debugLog('Extract', '❌ NO TEXT CONTENT FOUND - returning empty graph');
+      debugLog('Extract', 'No text content found - returning empty graph');
       return { nodes: [], links: [] };
     }
     
     try {
-      debugLog('Extract', 'Attempting to parse JSON from combined text...');
       const mcpData: MCPGraphData = JSON.parse(combinedText);
-      debugLog('Extract', '✅ JSON PARSED SUCCESSFULLY:', mcpData);
-      
       const graphData = this.transformMCPToGraphData(mcpData);
-      debugLog('Extract', '✅ GRAPH DATA TRANSFORMED:', {
+      
+      debugLog('Extract', 'Graph data extracted:', {
         nodes: graphData.nodes.length,
         links: graphData.links.length
       });
       
       return graphData;
     } catch (error) {
-      debugLog('Extract', '❌ FAILED TO PARSE JSON from tool result:', error);
-      debugLog('Extract', 'Raw text that failed to parse (first 500 chars):', combinedText.substring(0, 500));
+      debugLog('Extract', 'Failed to parse JSON from tool result:', error);
       return { nodes: [], links: [] };
     }
   }
   
   private triggerGraphReload(graphData: GraphData): void {
-    console.log('🔥 TRIGGER GRAPH RELOAD CALLED!!!', graphData);
-    debugLog('Event', '🚀 TRIGGERING GRAPH RELOAD EVENT:', {
+    debugLog('Event', 'Triggering graph reload event:', {
       nodes: graphData.nodes.length,
-      links: graphData.links.length,
-      eventName: 'mcpGraphReload',
-      sampleNodes: graphData.nodes.slice(0, 3),
-      sampleLinks: graphData.links.slice(0, 3)
+      links: graphData.links.length
     });
     
     const event = new CustomEvent('mcpGraphReload', { detail: graphData });
-    console.log('Dispatching event:', event);
     window.dispatchEvent(event);
     
-    debugLog('Event', '✅ GRAPH RELOAD EVENT DISPATCHED');
+    debugLog('Event', 'Graph reload event dispatched');
   }
   
   private triggerNodeHighlighting(graphData: GraphData): void {
@@ -672,6 +599,18 @@ Feel free to have normal conversations and only use MCP tools when they're actua
     window.dispatchEvent(event);
     
     debugLog('Event', '✅ NODE HIGHLIGHT EVENT DISPATCHED');
+  }
+
+  private triggerNodeHighlightingByNames(nodeNames: string[]): void {
+    debugLog('Event', 'Triggering node highlight event:', {
+      nodeNames,
+      nodeCount: nodeNames.length
+    });
+    
+    const event = new CustomEvent('mcpNodeHighlight', { detail: { nodeIds: nodeNames } });
+    window.dispatchEvent(event);
+    
+    debugLog('Event', 'Node highlight event dispatched');
   }
 
   private extractGraphDataFromResponse(response: MCPResponse): GraphData {
@@ -729,14 +668,11 @@ Feel free to have normal conversations and only use MCP tools when they're actua
 
   // Transform MCP data format to GraphData format
   private transformMCPToGraphData(mcpData: MCPGraphData): GraphData {
-    debugLog('Transform', '🔄 STARTING MCP DATA TRANSFORMATION:', mcpData);
-    
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
 
     // Transform entities to nodes
     if (mcpData.entities) {
-      debugLog('Transform', `📊 Transforming ${mcpData.entities.length} entities to nodes...`);
       for (const entity of mcpData.entities) {
         const node: GraphNode = {
           id: entity.name,
@@ -747,19 +683,11 @@ Feel free to have normal conversations and only use MCP tools when they're actua
           size: 8
         };
         nodes.push(node);
-        debugLog('Transform', `✅ Entity transformed:`, {
-          name: entity.name,
-          type: entity.type,
-          observationCount: entity.observations?.length || 0
-        });
       }
-    } else {
-      debugLog('Transform', '❌ NO ENTITIES FOUND in MCP data');
     }
 
     // Transform relations to links
     if (mcpData.relations) {
-      debugLog('Transform', `🔗 Transforming ${mcpData.relations.length} relations to links...`);
       for (const relation of mcpData.relations) {
         const link: GraphLink = {
           source: relation.source,
@@ -769,26 +697,17 @@ Feel free to have normal conversations and only use MCP tools when they're actua
           width: 2
         };
         links.push(link);
-        debugLog('Transform', `✅ Relation transformed:`, {
-          source: relation.source,
-          target: relation.target,
-          relationType: relation.relationType
-        });
       }
-    } else {
-      debugLog('Transform', '❌ NO RELATIONS FOUND in MCP data');
     }
 
-    const result = { nodes, links };
-    debugLog('Transform', '🎉 MCP DATA TRANSFORMATION COMPLETED:', { 
+    debugLog('Transform', 'Data transformation completed:', { 
       inputEntities: mcpData.entities?.length || 0,
       inputRelations: mcpData.relations?.length || 0,
       outputNodes: nodes.length,
-      outputLinks: links.length,
-      result
+      outputLinks: links.length
     });
 
-    return result;
+    return { nodes, links };
   }
 
   getConnectionStatus(): MCPConnectionStatus {

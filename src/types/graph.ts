@@ -33,6 +33,35 @@ export interface MCPToolUse {
   server_name: string;
 }
 
+// Enhanced tag and layer interfaces
+export interface NodeTag {
+  name: string;
+  category: 'hashtag' | 'keyword' | 'type' | 'custom';
+  color?: string;
+  weight?: number; // 1-10, influences layer positioning
+}
+
+export interface LayerInfo {
+  id: string;
+  name: string;
+  zPosition: number;
+  tags: string[];
+  visible: boolean;
+  opacity: number;
+  color: string;
+  nodeCount: number;
+}
+
+export interface NodeMetadata {
+  createdAt?: Date;
+  updatedAt?: Date;
+  importance?: number; // 1-10 scale
+  category?: string;
+  keywords?: string[];
+  connectionStrength?: number;
+  clusterId?: string;
+}
+
 export interface GraphNode {
   id: string;
   name: string;
@@ -43,6 +72,13 @@ export interface GraphNode {
   z?: number;
   color?: string;
   size?: number;
+  
+  // Enhanced fields for layering and tagging
+  tags: NodeTag[];
+  layer?: LayerInfo;
+  metadata: NodeMetadata;
+  tagString?: string; // Computed from tags for quick searching
+  layerId?: string; // Reference to current layer
 }
 
 export interface GraphLink {
@@ -51,17 +87,34 @@ export interface GraphLink {
   relationType: string;
   color?: string;
   width?: number;
+  
+  // Enhanced fields for layer-aware connections
+  isInterLayer?: boolean; // True if connects nodes from different layers
+  strength?: number; // 1-10, visual emphasis
+  tags?: string[]; // Tags associated with this relationship
 }
 
 export interface GraphData {
   nodes: GraphNode[];
   links: GraphLink[];
+  layers: LayerInfo[]; // Available layers in the graph
+  tagIndex: Map<string, string[]>; // Tag name -> node IDs with that tag
 }
 
 export interface NodeSelection {
   node: GraphNode;
   position: { x: number; y: number };
   persistent: boolean;
+}
+
+// Enhanced graph state with layer controls
+export interface LayerControls {
+  visibleLayers: Set<string>;
+  isolatedLayer?: string; // If set, only show this layer
+  layerOpacity: Map<string, number>;
+  showInterLayerConnections: boolean;
+  tagFilter: string[];
+  layerSpacing: number; // Distance between layers
 }
 
 export interface GraphState {
@@ -71,4 +124,13 @@ export interface GraphState {
   highlightedLinks: Set<string>;
   hoveredNode: GraphNode | null;
   isHoverMode: boolean;
+  
+  // Enhanced state for layers
+  layerControls: LayerControls;
+  activeFilters: {
+    tags: string[];
+    types: string[];
+    layers: string[];
+    searchQuery: string;
+  };
 } 
