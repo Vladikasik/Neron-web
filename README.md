@@ -75,14 +75,22 @@ npm install
 ```
 
 2. **Configure environment variables:**
+
+**For Local Development:**
 ```bash
 # Copy the example file
 cp env.example .env.local
 
 # Edit .env.local and add your API keys:
-VITE_ANTHROPIC_API_KEY=sk-ant-api...
+ANTHROPIC_API_KEY=sk-ant-api...
+MCP_URL=https://memory.aynshteyn.dev/sse
 VITE_MCP_URL=https://memory.aynshteyn.dev/sse
 ```
+
+**For Vercel Deployment:**
+Set these environment variables in your Vercel dashboard:
+- `ANTHROPIC_API_KEY` - Your Claude API key
+- `MCP_URL` - Your MCP server URL
 
 3. **Start development server:**
 ```bash
@@ -176,6 +184,35 @@ The application connects to MCP servers for AI-powered graph management. Configu
 ```
 VITE_MCP_URL=https://your-mcp-server.com/sse
 ```
+
+### MCP Integration Details
+
+The project uses the **official Anthropic MCP connector** for seamless AI-graph integration:
+
+**API Configuration:**
+- Model: `claude-sonnet-4-20250514` (official MCP connector model)
+- Beta header: `"anthropic-beta": "mcp-client-2025-04-04"` ⚠️ **REQUIRED**
+- API version: `2023-06-01`
+
+**MCP Tools Available:**
+- `read_graph()`: Fetch complete graph structure with all nodes and relationships
+- `find_nodes(names)`: Search for specific nodes by name and return details
+- `create_entities(entities)`: Create new entities in the graph
+- `create_relations(relations)`: Create new relationships between entities  
+- `add_observations(observations)`: Add observations to existing entities
+
+**Connection Monitoring:**
+- Real-time connection status tracking
+- Tool usage analytics and performance metrics
+- Response time monitoring with ping tests
+- Comprehensive error reporting and debug logs
+
+**Debugging Features:**
+- Categorized logging: Connection, Request, Response, MCP Tools
+- Tool usage tracking with server identification
+- Request/response time profiling
+- Debug information included in all API responses
+- Console integration for real-time MCP monitoring
 
 ### Claude API
 Requires Claude API access with MCP client headers:
