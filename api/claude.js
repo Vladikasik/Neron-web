@@ -38,7 +38,18 @@ export default async function handler(req, res) {
       name: "memory",
       tool_configuration: {
         enabled: true,
-        allowed_tools: ["find_nodes", "read_graph", "create_entities", "create_relations", "add_observations"]
+        allowed_tools: [
+          "read_graph", 
+          "find_nodes", 
+          "create_entities", 
+          "create_relations", 
+          "add_observations",
+          "delete_entities",
+          "delete_observations", 
+          "delete_relations",
+          "search_nodes",
+          "open_nodes"
+        ]
       }
     }];
 
