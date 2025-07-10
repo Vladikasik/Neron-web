@@ -133,29 +133,66 @@ function App() {
 
   // Listen for MCP events to automatically update graph
   useEffect(() => {
+    console.log('🎯 [App] Setting up MCP event listeners...');
+    
     const handleGraphReload = (event: CustomEvent) => {
       const graphData = event.detail;
+      console.log('🔥 [App] GRAPH RELOAD EVENT RECEIVED:', {
+        eventType: 'mcpGraphReload',
+        timestamp: new Date().toISOString(),
+        nodes: graphData.nodes.length,
+        links: graphData.links.length,
+        nodeNames: graphData.nodes.map((n: GraphNode) => n.name).slice(0, 3),
+        eventDetail: graphData
+      });
+      
       consoleRef.current?.addMessage({
         type: 'system',
         content: `🔄 Graph automatically updated from MCP tool result: ${graphData.nodes.length} nodes, ${graphData.links.length} links`
       });
       
-      setGraphState(prev => ({
-        ...prev,
-        data: graphData,
-        highlightedNodes: new Set(),
-        highlightedLinks: new Set()
-      }));
+      console.log('💾 [App] Updating graph state with new data...');
+      setGraphState(prev => {
+        console.log('🔄 [App] Graph state update - BEFORE:', {
+          prevNodes: prev.data.nodes.length,
+          prevLinks: prev.data.links.length
+        });
+        
+        const newState: GraphState = {
+          ...prev,
+          data: graphData,
+          highlightedNodes: new Set<string>(),
+          highlightedLinks: new Set<string>()
+        };
+        
+        console.log('✅ [App] Graph state update - AFTER:', {
+          newNodes: newState.data.nodes.length,
+          newLinks: newState.data.links.length
+        });
+        
+        return newState;
+      });
+      
+      console.log('✅ [App] Graph reload event processing COMPLETED');
     };
     
     const handleNodeHighlight = (event: CustomEvent) => {
       const { nodeIds } = event.detail;
+      console.log('🎯 [App] NODE HIGHLIGHT EVENT RECEIVED:', {
+        eventType: 'mcpNodeHighlight',
+        timestamp: new Date().toISOString(),
+        nodeIds,
+        nodeCount: nodeIds.length,
+        eventDetail: event.detail
+      });
+      
       consoleRef.current?.addMessage({
         type: 'system',
         content: `🎯 Nodes automatically highlighted from MCP tool result: ${nodeIds.join(', ')}`
       });
       
       // Find connected links for highlighting
+      console.log('🔍 [App] Finding connected links for highlighting...');
       const connectedLinkIds = new Set<string>();
       graphState.data.links.forEach(link => {
         const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
@@ -166,6 +203,11 @@ function App() {
         }
       });
       
+      console.log('🔗 [App] Connected links found:', {
+        linkCount: connectedLinkIds.size,
+        linkIds: Array.from(connectedLinkIds)
+      });
+      
       setGraphState(prev => ({
         ...prev,
         highlightedNodes: new Set(nodeIds),
@@ -173,17 +215,25 @@ function App() {
       }));
       
       // Center on highlighted nodes
+      console.log('📍 [App] Centering graph on highlighted nodes...');
       setTimeout(() => {
         graphRef.current?.centerOnNodes(nodeIds);
+        console.log('✅ [App] Graph centered on nodes:', nodeIds);
       }, 100);
+      
+      console.log('✅ [App] Node highlight event processing COMPLETED');
     };
     
+    console.log('📡 [App] Registering event listeners for MCP events...');
     window.addEventListener('mcpGraphReload', handleGraphReload as EventListener);
     window.addEventListener('mcpNodeHighlight', handleNodeHighlight as EventListener);
+    console.log('✅ [App] MCP event listeners registered successfully');
     
     return () => {
+      console.log('🧹 [App] Cleaning up MCP event listeners...');
       window.removeEventListener('mcpGraphReload', handleGraphReload as EventListener);
       window.removeEventListener('mcpNodeHighlight', handleNodeHighlight as EventListener);
+      console.log('✅ [App] MCP event listeners cleaned up');
     };
   }, [graphState.data.links]);
 
@@ -325,6 +375,8 @@ function App() {
   // Console message handler
   const handleSendMessage = useCallback(async (message: string): Promise<string> => {
     setIsLoading(true);
+    console.log('📨 [App] Console message handler started:', { message });
+    
     consoleRef.current?.addMessage({
       type: 'system',
       content: `🤖 Processing: "${message}"`
@@ -332,20 +384,30 @@ function App() {
 
     try {
       const startTime = Date.now();
+      console.log('🚀 [App] Sending message to MCP client...');
       
       // Send message to MCP client (automatic processing will handle graph updates)
       const response = await mcpClientRef.current.sendMessage(message);
       
       const requestTime = Date.now() - startTime;
+      console.log('⏱️ [App] MCP client response received:', {
+        requestTime,
+        responseLength: response.length,
+        responsePreview: response.substring(0, 100) + '...'
+      });
+      
       consoleRef.current?.addMessage({
         type: 'system',
         content: `⏱️ Request completed in ${requestTime}ms`
       });
       
+      console.log('✅ [App] Message processing completed successfully');
       return response;
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ [App] Message processing failed:', error);
+      
       setError(errorMessage);
       consoleRef.current?.addMessage({
         type: 'error',
@@ -354,6 +416,7 @@ function App() {
       throw error;
     } finally {
       setIsLoading(false);
+      console.log('🏁 [App] Message handler cleanup completed');
     }
   }, []);
 
