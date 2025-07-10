@@ -1,5 +1,4 @@
-import type { GraphData, GraphNode, GraphLink, MCPGraphData, MCPEntity, MCPRelation } from '../types/graph';
-import { transformMCPToGraphData } from './dataTransformer';
+import type { GraphData, GraphNode, GraphLink, MCPGraphData } from '../types/graph';
 import { graphCache, CACHE_KEYS, CacheStrategy } from './graphCache';
 import type { CacheStrategyType } from './graphCache';
 
@@ -60,7 +59,6 @@ const debugLog = (category: string, message: string, data?: any) => {
 };
 
 export class MCPClient {
-  private isConnected = false;
   private lastConnectionTest: Date | null = null;
   private serverStatus: MCPConnectionStatus = {
     connected: false,
@@ -98,7 +96,6 @@ The graph represents a knowledge base with interconnected concepts, entities, an
       
       const responseTime = Date.now() - startTime;
       this.lastConnectionTest = new Date();
-      this.isConnected = isConnected;
       
       this.serverStatus = {
         ...this.serverStatus,
@@ -116,7 +113,6 @@ The graph represents a knowledge base with interconnected concepts, entities, an
       return isConnected;
     } catch (error) {
       debugLog('Connection', 'Connection error:', error);
-      this.isConnected = false;
       this.serverStatus.connected = false;
       this.serverStatus.errors = [error instanceof Error ? error.message : 'Unknown error'];
       return false;
@@ -135,7 +131,7 @@ The graph represents a knowledge base with interconnected concepts, entities, an
         this.serverStatus.toolsAvailable = mcpToolUses.map((t) => t.name);
       }
       
-      return mcpToolUses.length > 0 || hasDebugInfo;
+      return mcpToolUses.length > 0 || Boolean(hasDebugInfo);
     } catch (error) {
       debugLog('Test', 'Connection test failed:', error);
       return false;
