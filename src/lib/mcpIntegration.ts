@@ -1,4 +1,4 @@
-import type { GraphData, GraphNode, GraphLink, MCPGraphData } from '../types/graph';
+import type { GraphData, GraphNode, GraphLink, MCPGraphData, LayerInfo, NodeTag } from '../types/graph';
 import { graphCache, CACHE_KEYS, CacheStrategy } from './graphCache';
 import type { CacheStrategyType } from './graphCache';
 
@@ -370,7 +370,12 @@ When you use tools, the user's graph will update automatically.`;
       return graphData;
     } catch (error) {
       debugLog('Error', 'Failed to read graph from MCP:', error);
-      return { nodes: [], links: [] };
+      return { 
+        nodes: [], 
+        links: [], 
+        layers: [], 
+        tagIndex: new Map<string, string[]>() 
+      };
     }
   }
 
@@ -556,7 +561,12 @@ When you use tools, the user's graph will update automatically.`;
     
     if (!combinedText) {
       debugLog('Extract', 'No text content found - returning empty graph');
-      return { nodes: [], links: [] };
+      return { 
+        nodes: [], 
+        links: [], 
+        layers: [], 
+        tagIndex: new Map<string, string[]>() 
+      };
     }
     
     try {
@@ -571,7 +581,12 @@ When you use tools, the user's graph will update automatically.`;
       return graphData;
     } catch (error) {
       debugLog('Extract', 'Failed to parse JSON from tool result:', error);
-      return { nodes: [], links: [] };
+      return { 
+        nodes: [], 
+        links: [], 
+        layers: [], 
+        tagIndex: new Map<string, string[]>() 
+      };
     }
   }
   
@@ -587,19 +602,7 @@ When you use tools, the user's graph will update automatically.`;
     debugLog('Event', 'Graph reload event dispatched');
   }
   
-  private triggerNodeHighlighting(graphData: GraphData): void {
-    const nodeIds = graphData.nodes.map(n => n.id);
-    debugLog('Event', '🎯 TRIGGERING NODE HIGHLIGHT EVENT:', {
-      nodeIds,
-      nodeCount: nodeIds.length,
-      eventName: 'mcpNodeHighlight'
-    });
-    
-    const event = new CustomEvent('mcpNodeHighlight', { detail: { nodeIds } });
-    window.dispatchEvent(event);
-    
-    debugLog('Event', '✅ NODE HIGHLIGHT EVENT DISPATCHED');
-  }
+
 
   private triggerNodeHighlightingByNames(nodeNames: string[]): void {
     debugLog('Event', 'Triggering node highlight event:', {
@@ -624,7 +627,12 @@ When you use tools, the user's graph will update automatically.`;
       
       if (mcpToolResults.length === 0) {
         debugLog('Extract', 'No MCP tool results found in response');
-        return { nodes: [], links: [] };
+        return { 
+          nodes: [], 
+          links: [], 
+          layers: [], 
+          tagIndex: new Map<string, string[]>() 
+        };
       }
 
       // Extract text content from tool results - based on .docs example format
@@ -647,7 +655,12 @@ When you use tools, the user's graph will update automatically.`;
 
       if (!combinedText) {
         debugLog('Extract', 'No text content found in tool results');
-        return { nodes: [], links: [] };
+        return { 
+          nodes: [], 
+          links: [], 
+          layers: [], 
+          tagIndex: new Map<string, string[]>() 
+        };
       }
 
       // Parse JSON data (format: {entities: [...], relations: [...]})
@@ -658,11 +671,21 @@ When you use tools, the user's graph will update automatically.`;
       } catch (parseError) {
         debugLog('Extract', 'Failed to parse JSON from MCP result:', parseError);
         debugLog('Extract', 'Raw text that failed to parse:', combinedText);
-        return { nodes: [], links: [] };
+        return { 
+          nodes: [], 
+          links: [], 
+          layers: [], 
+          tagIndex: new Map<string, string[]>() 
+        };
       }
     } catch (error) {
       debugLog('Error', 'Failed to extract graph data:', error);
-      return { nodes: [], links: [] };
+      return { 
+        nodes: [], 
+        links: [], 
+        layers: [], 
+        tagIndex: new Map<string, string[]>() 
+      };
     }
   }
 
@@ -670,20 +693,69 @@ When you use tools, the user's graph will update automatically.`;
   private transformMCPToGraphData(mcpData: MCPGraphData): GraphData {
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
+    const layers: LayerInfo[] = [];
+    const tagIndex = new Map<string, string[]>();
+
+    // Create default layer
+    const defaultLayer: LayerInfo = {
+      id: 'default',
+      name: 'Default Layer',
+      zPosition: 0,
+      tags: [],
+      visible: true,
+      opacity: 1.0,
+      color: '#00ff41',
+      nodeCount: 0
+    };
+    layers.push(defaultLayer);
 
     // Transform entities to nodes
     if (mcpData.entities) {
       for (const entity of mcpData.entities) {
+        // Create tags from entity type and observations
+        const tags: NodeTag[] = [
+          {
+            name: entity.type,
+            category: 'type' as const,
+            color: '#00ff41',
+            weight: 5
+          }
+        ];
+
         const node: GraphNode = {
           id: entity.name,
           name: entity.name,
           type: entity.type,
           observations: entity.observations || [],
           color: '#00ff41', // Matrix green
-          size: 8
+          size: 8,
+          tags,
+          layer: defaultLayer,
+          metadata: {
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            importance: 5,
+            category: entity.type,
+            keywords: entity.observations || [],
+            connectionStrength: 1,
+            clusterId: 'default'
+          },
+          tagString: tags.map(t => t.name).join(' '),
+          layerId: 'default'
         };
         nodes.push(node);
+
+        // Update tag index
+        tags.forEach(tag => {
+          if (!tagIndex.has(tag.name)) {
+            tagIndex.set(tag.name, []);
+          }
+          tagIndex.get(tag.name)!.push(node.id);
+        });
       }
+
+      // Update layer node count
+      defaultLayer.nodeCount = nodes.length;
     }
 
     // Transform relations to links
@@ -694,7 +766,10 @@ When you use tools, the user's graph will update automatically.`;
           target: relation.target,
           relationType: relation.relationType,
           color: '#00ff41', // Matrix green
-          width: 2
+          width: 2,
+          isInterLayer: false,
+          strength: 5,
+          tags: [relation.relationType]
         };
         links.push(link);
       }
@@ -704,10 +779,12 @@ When you use tools, the user's graph will update automatically.`;
       inputEntities: mcpData.entities?.length || 0,
       inputRelations: mcpData.relations?.length || 0,
       outputNodes: nodes.length,
-      outputLinks: links.length
+      outputLinks: links.length,
+      layers: layers.length,
+      tagIndex: tagIndex.size
     });
 
-    return { nodes, links };
+    return { nodes, links, layers, tagIndex };
   }
 
   getConnectionStatus(): MCPConnectionStatus {
