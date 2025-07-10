@@ -450,8 +450,19 @@ Feel free to have normal conversations and only use MCP tools when they're actua
       
       // Process successful tool results
       if (mcpToolResults.length > 0) {
-        debugLog('Process', 'Starting tool result processing...');
-        await this.processToolResults(mcpToolResults, mcpToolUses);
+        debugLog('Process', '🚀 STARTING TOOL RESULT PROCESSING...', {
+          toolResultCount: mcpToolResults.length,
+          toolUseCount: mcpToolUses.length,
+          timestamp: new Date().toISOString()
+        });
+        
+        try {
+          await this.processToolResults(mcpToolResults, mcpToolUses);
+          debugLog('Process', '✅ TOOL RESULT PROCESSING COMPLETED SUCCESSFULLY');
+        } catch (error) {
+          debugLog('Process', '❌ ERROR IN TOOL RESULT PROCESSING:', error);
+          console.error('Tool result processing error:', error);
+        }
       } else {
         debugLog('Process', 'No tool results to process - skipping graph updates');
       }
@@ -472,10 +483,13 @@ Feel free to have normal conversations and only use MCP tools when they're actua
   }
 
   private async processToolResults(results: MCPToolResult[], toolUses: MCPToolUse[]): Promise<void> {
-    debugLog('Process', 'Processing tool results STARTED:', { 
+    console.log('🔥 PROCESS TOOL RESULTS CALLED!!!', { results: results.length, toolUses: toolUses.length });
+    debugLog('Process', '🔥 PROCESSING TOOL RESULTS STARTED:', { 
       results: results.length, 
       toolUses: toolUses.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      resultIds: results.map(r => r.tool_use_id),
+      toolNames: toolUses.map(t => t.name)
     });
     
     for (let i = 0; i < results.length; i++) {
@@ -566,27 +580,38 @@ Feel free to have normal conversations and only use MCP tools when they're actua
   }
   
   private extractGraphDataFromToolResult(result: MCPToolResult): GraphData {
-    debugLog('Extract', 'Extracting graph data from tool result...');
+    console.log('🔥 EXTRACT GRAPH DATA FROM TOOL RESULT CALLED!!!', result);
+    debugLog('Extract', '🔥 EXTRACTING GRAPH DATA FROM TOOL RESULT...', {
+      toolUseId: result.tool_use_id,
+      isError: result.is_error,
+      contentLength: result.content?.length || 0,
+      content: result.content
+    });
+    
     let combinedText = '';
     
     if (result.content) {
-      debugLog('Extract', `Processing ${result.content.length} content blocks...`);
+      debugLog('Extract', `📊 Processing ${result.content.length} content blocks...`);
       for (const content of result.content) {
+        console.log('Content block processing:', content);
         debugLog('Extract', 'Processing content block:', {
           type: content.type,
           hasText: !!content.text,
-          textLength: content.text?.length || 0
+          textLength: content.text?.length || 0,
+          rawContent: content
         });
         
         if (content.type === 'text' && content.text) {
           combinedText += content.text + '\n';
-          debugLog('Extract', 'Added text to combinedText:', {
+          debugLog('Extract', '✅ Added text to combinedText:', {
             addedLength: content.text.length,
             totalLength: combinedText.length,
             preview: content.text.substring(0, 200) + '...'
           });
         }
       }
+    } else {
+      debugLog('Extract', '❌ NO CONTENT FOUND in tool result');
     }
     
     debugLog('Extract', 'Combined text extraction complete:', {
@@ -619,13 +644,17 @@ Feel free to have normal conversations and only use MCP tools when they're actua
   }
   
   private triggerGraphReload(graphData: GraphData): void {
+    console.log('🔥 TRIGGER GRAPH RELOAD CALLED!!!', graphData);
     debugLog('Event', '🚀 TRIGGERING GRAPH RELOAD EVENT:', {
       nodes: graphData.nodes.length,
       links: graphData.links.length,
-      eventName: 'mcpGraphReload'
+      eventName: 'mcpGraphReload',
+      sampleNodes: graphData.nodes.slice(0, 3),
+      sampleLinks: graphData.links.slice(0, 3)
     });
     
     const event = new CustomEvent('mcpGraphReload', { detail: graphData });
+    console.log('Dispatching event:', event);
     window.dispatchEvent(event);
     
     debugLog('Event', '✅ GRAPH RELOAD EVENT DISPATCHED');
