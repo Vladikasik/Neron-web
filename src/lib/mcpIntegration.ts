@@ -69,22 +69,45 @@ export class MCPClient {
     errors: []
   };
 
-  private systemPrompt = `You are an AI assistant specialized in working with graph data through MCP (Model Context Protocol). You have access to a Neo4j knowledge graph containing entities, relationships, and observations.
+  private systemPrompt = `You are a specialized AI assistant for graph-based knowledge management. You MUST use MCP tools for ALL graph operations.
 
-Available MCP Tools:
-- read_graph(): Get the complete graph structure with all nodes and relationships
-- find_nodes(names): Find specific nodes by name and return their details
-- create_entities(entities): Create new entities in the graph
-- create_relations(relations): Create new relationships between entities
-- add_observations(observations): Add observations to existing entities
+CRITICAL: You have access to 11 MCP tools through the "memory" server. You MUST use these tools for every request related to graph data.
 
-When using MCP tools:
-1. Always use the appropriate tool for the requested action
-2. Provide clear feedback about what data was retrieved or modified
-3. Include relevant entity details, relationships, and observations
-4. Format responses in a structured way for the graph visualization
+# Available MCP Tools:
+1. read_graph() - Get complete graph structure (triggers full graph reload)
+2. find_nodes(names) - Find specific nodes by name (triggers node highlighting)
+3. create_entities(entities) - Create new entities
+4. create_relations(relations) - Create new relationships
+5. add_observations(observations) - Add observations to entities
+6. delete_entities(entityNames) - Delete entities
+7. delete_observations(deletions) - Delete observations
+8. delete_relations(relations) - Delete relationships
+9. search_nodes(query) - Search for nodes
+10. open_nodes(names) - Open specific nodes
 
-The graph represents a knowledge base with interconnected concepts, entities, and their relationships.`;
+# MANDATORY TOOL USAGE RULES:
+- ALWAYS use read_graph() when user asks about the complete graph, wants to see all data, or says "read graph"
+- ALWAYS use find_nodes() when user wants to find, search, or highlight specific nodes
+- ALWAYS use create_entities() when user wants to add new concepts, ideas, or entities
+- ALWAYS use create_relations() when user wants to connect concepts or entities
+- RARELY respond with just text - you MUST use the appropriate MCP tool
+
+# Response Format:
+1. Use the appropriate MCP tool first
+2. After receiving tool results, provide a clear summary of what was found/done
+3. Include relevant details about entities, relationships, and observations
+
+# Examples:
+User: "Show me the graph"
+You: [Use read_graph() tool] → then no text since data is updated from the tool call return
+
+User: "Find Tesla and Aurora nodes"
+You: [Use find_nodes(["Tesla", "Aurora"]) tool] → then no text since data is updated from the tool call return
+
+User: "Add a new concept about AI"
+You: [Use create_entities() tool] → create right away but ask confirmtion for packs of more then 3 nodes
+
+REMEMBER: The user's graph visualization will automatically update when you use read_graph() or find_nodes() tools successfully. Always use these tools for graph operations.`;
 
   async connect(): Promise<boolean> {
     debugLog('Connection', 'Testing MCP connection...');
@@ -411,6 +434,21 @@ The graph represents a knowledge base with interconnected concepts, entities, an
     try {
       const response = await this.sendRawMessage(message);
       
+      // Check for successful MCP tool usage
+      const mcpToolUses = response.content?.filter((c): c is MCPToolUse => c.type === 'mcp_tool_use') || [];
+      const mcpToolResults = response.content?.filter((c): c is MCPToolResult => c.type === 'mcp_tool_result') || [];
+      
+      debugLog('Message', 'MCP tool analysis:', {
+        toolUses: mcpToolUses.length,
+        toolResults: mcpToolResults.length,
+        toolNames: mcpToolUses.map(t => t.name)
+      });
+      
+      // Process successful tool results
+      if (mcpToolResults.length > 0) {
+        await this.processToolResults(mcpToolResults, mcpToolUses);
+      }
+      
       // Extract text content from response
       const textContent = response.content
         ?.filter((c: any) => c.type === 'text')
@@ -424,6 +462,101 @@ The graph represents a knowledge base with interconnected concepts, entities, an
       debugLog('Error', 'Failed to send message:', error);
       return `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
+  }
+
+  private async processToolResults(results: MCPToolResult[], toolUses: MCPToolUse[]): Promise<void> {
+    debugLog('Process', 'Processing tool results:', { results: results.length, toolUses: toolUses.length });
+    
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const toolUse = toolUses.find(tu => tu.id === result.tool_use_id);
+      
+      if (!toolUse || result.is_error) {
+        debugLog('Process', 'Skipping failed/error tool result:', { toolName: toolUse?.name, isError: result.is_error });
+        continue;
+      }
+      
+      debugLog('Process', 'Processing successful tool result:', { toolName: toolUse.name, toolId: toolUse.id });
+      
+      // Handle read_graph tool results
+      if (toolUse.name === 'read_graph') {
+        debugLog('Process', 'Processing read_graph result - updating cache...');
+        try {
+          const graphData = this.extractGraphDataFromToolResult(result);
+          if (graphData.nodes.length > 0) {
+            graphCache.set(CACHE_KEYS.FULL_GRAPH, graphData);
+            debugLog('Process', 'Graph cache updated from read_graph result:', {
+              nodes: graphData.nodes.length,
+              links: graphData.links.length
+            });
+            
+            // Trigger graph reload event
+            this.triggerGraphReload(graphData);
+          }
+        } catch (error) {
+          debugLog('Process', 'Error processing read_graph result:', error);
+        }
+      }
+      
+      // Handle find_nodes tool results
+      else if (toolUse.name === 'find_nodes') {
+        debugLog('Process', 'Processing find_nodes result - extracting nodes...');
+        try {
+          const graphData = this.extractGraphDataFromToolResult(result);
+          if (graphData.nodes.length > 0) {
+            debugLog('Process', 'Found nodes from find_nodes result:', {
+              nodes: graphData.nodes.length,
+              nodeNames: graphData.nodes.map(n => n.name)
+            });
+            
+            // Trigger node highlighting event
+            this.triggerNodeHighlighting(graphData);
+          }
+        } catch (error) {
+          debugLog('Process', 'Error processing find_nodes result:', error);
+        }
+      }
+      
+      // Handle other tool results
+      else {
+        debugLog('Process', 'Processing other tool result:', { toolName: toolUse.name });
+      }
+    }
+  }
+  
+  private extractGraphDataFromToolResult(result: MCPToolResult): GraphData {
+    let combinedText = '';
+    
+    if (result.content) {
+      for (const content of result.content) {
+        if (content.type === 'text' && content.text) {
+          combinedText += content.text + '\n';
+        }
+      }
+    }
+    
+    if (!combinedText) {
+      return { nodes: [], links: [] };
+    }
+    
+    try {
+      const mcpData: MCPGraphData = JSON.parse(combinedText);
+      return this.transformMCPToGraphData(mcpData);
+    } catch (error) {
+      debugLog('Extract', 'Failed to parse tool result JSON:', error);
+      return { nodes: [], links: [] };
+    }
+  }
+  
+  private triggerGraphReload(graphData: GraphData): void {
+    debugLog('Event', 'Triggering graph reload event');
+    window.dispatchEvent(new CustomEvent('mcpGraphReload', { detail: graphData }));
+  }
+  
+  private triggerNodeHighlighting(graphData: GraphData): void {
+    debugLog('Event', 'Triggering node highlighting event');
+    const nodeIds = graphData.nodes.map(n => n.id);
+    window.dispatchEvent(new CustomEvent('mcpNodeHighlight', { detail: { nodeIds } }));
   }
 
   private extractGraphDataFromResponse(response: MCPResponse): GraphData {

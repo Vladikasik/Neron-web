@@ -131,6 +131,62 @@ function App() {
     graphCache.set(CACHE_KEYS.FULL_GRAPH, sampleData);
   }, [sampleData]);
 
+  // Listen for MCP events to automatically update graph
+  useEffect(() => {
+    const handleGraphReload = (event: CustomEvent) => {
+      const graphData = event.detail;
+      consoleRef.current?.addMessage({
+        type: 'system',
+        content: `🔄 Graph automatically updated from MCP tool result: ${graphData.nodes.length} nodes, ${graphData.links.length} links`
+      });
+      
+      setGraphState(prev => ({
+        ...prev,
+        data: graphData,
+        highlightedNodes: new Set(),
+        highlightedLinks: new Set()
+      }));
+    };
+    
+    const handleNodeHighlight = (event: CustomEvent) => {
+      const { nodeIds } = event.detail;
+      consoleRef.current?.addMessage({
+        type: 'system',
+        content: `🎯 Nodes automatically highlighted from MCP tool result: ${nodeIds.join(', ')}`
+      });
+      
+      // Find connected links for highlighting
+      const connectedLinkIds = new Set<string>();
+      graphState.data.links.forEach(link => {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        
+        if (nodeIds.includes(sourceId) || nodeIds.includes(targetId)) {
+          connectedLinkIds.add(`${sourceId}-${targetId}`);
+        }
+      });
+      
+      setGraphState(prev => ({
+        ...prev,
+        highlightedNodes: new Set(nodeIds),
+        highlightedLinks: connectedLinkIds
+      }));
+      
+      // Center on highlighted nodes
+      setTimeout(() => {
+        graphRef.current?.centerOnNodes(nodeIds);
+      }, 100);
+    };
+    
+    window.addEventListener('mcpGraphReload', handleGraphReload as EventListener);
+    window.addEventListener('mcpNodeHighlight', handleNodeHighlight as EventListener);
+    
+    return () => {
+      window.removeEventListener('mcpGraphReload', handleGraphReload as EventListener);
+      window.removeEventListener('mcpNodeHighlight', handleNodeHighlight as EventListener);
+    };
+  }, [graphState.data.links]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -271,120 +327,30 @@ function App() {
     setIsLoading(true);
     consoleRef.current?.addMessage({
       type: 'system',
-      content: `Processing command: "${message}"`
+      content: `🤖 Processing: "${message}"`
     });
 
     try {
-      // Handle graph-specific commands directly
-      if (message.toLowerCase().includes('read graph')) {
-        consoleRef.current?.addMessage({
-          type: 'system',
-          content: '🔄 Starting read_graph command...'
-        });
-        
-        consoleRef.current?.addMessage({
-          type: 'system',
-          content: '📡 Calling Claude API with MCP read_graph tool...'
-        });
-        
-        const startTime = Date.now();
-        const newGraphData = await mcpClientRef.current.readGraph();
-        const requestTime = Date.now() - startTime;
-        
-        consoleRef.current?.addMessage({
-          type: 'system',
-          content: `⏱️ MCP request completed in ${requestTime}ms`
-        });
-        
-        if (newGraphData.nodes.length > 0) {
-          consoleRef.current?.addMessage({
-            type: 'system',
-            content: `📊 Received: ${newGraphData.nodes.length} nodes, ${newGraphData.links.length} links`
-          });
-          
-          consoleRef.current?.addMessage({
-            type: 'system',
-            content: `🏷️ Node types: ${[...new Set(newGraphData.nodes.map(n => n.type))].join(', ')}`
-          });
-          
-          consoleRef.current?.addMessage({
-            type: 'system',
-            content: `📝 Sample nodes: ${newGraphData.nodes.slice(0, 3).map(n => n.name).join(', ')}${newGraphData.nodes.length > 3 ? '...' : ''}`
-          });
-          
-          setGraphState(prev => ({
-            ...prev,
-            data: newGraphData
-          }));
-          graphCache.set(CACHE_KEYS.FULL_GRAPH, newGraphData);
-          
-          consoleRef.current?.addMessage({
-            type: 'mcp_tool',
-            content: `✅ Graph updated: ${newGraphData.nodes.length} nodes, ${newGraphData.links.length} links`,
-            toolName: 'read_graph'
-          });
-          
-          consoleRef.current?.addMessage({
-            type: 'system',
-            content: `💾 Graph data cached and UI updated`
-          });
-          
-          return `✅ Successfully loaded graph with ${newGraphData.nodes.length} nodes and ${newGraphData.links.length} relationships.\n\n📋 Node Details:\n${newGraphData.nodes.map(n => `• ${n.name} (${n.type}) - ${n.observations.length} observations`).join('\n')}`;
-        } else {
-          consoleRef.current?.addMessage({
-            type: 'error',
-            content: '❌ No graph data received from MCP server'
-          });
-          return '❌ Graph loaded but no data was returned. Check MCP server connection and data.';
-        }
-      }
+      const startTime = Date.now();
       
-      // Handle find nodes commands
-      if (message.toLowerCase().includes('find nodes') || message.toLowerCase().includes('find_nodes')) {
-        const nodeNames = message.split(/find[_ ]nodes/i)[1]?.trim()
-          .split(/[,\s]+/)
-          .filter(name => name.length > 0) || [];
-          
-        if (nodeNames.length === 0) {
-          return 'Please specify node names to find. Example: "find nodes Tesla, Aurora"';
-        }
-        
-        consoleRef.current?.addMessage({
-          type: 'system', 
-          content: `Using find_nodes MCP tool to search for: ${nodeNames.join(', ')}`
-        });
-        
-        const result = await mcpClientRef.current.findNodes(nodeNames);
-        if (result.nodes.length > 0) {
-          // Highlight found nodes
-          const foundNodeIds = new Set(result.nodes.map(n => n.id));
-          const highlightedLinkIds = new Set(result.highlightedLinks);
-          
-          setGraphState(prev => ({
-            ...prev,
-            highlightedNodes: foundNodeIds,
-            highlightedLinks: highlightedLinkIds
-          }));
-          
-          consoleRef.current?.addMessage({
-            type: 'mcp_tool',
-            content: `Found ${result.nodes.length} nodes, highlighted ${result.highlightedLinks.length} connections`,
-            toolName: 'find_nodes'
-          });
-          
-          return `Found ${result.nodes.length} nodes: ${result.nodes.map(n => n.name).join(', ')}`;
-        } else {
-          return `No nodes found matching: ${nodeNames.join(', ')}`;
-        }
-      }
-      
-      // For all other messages, use regular AI chat
+      // Send message to MCP client (automatic processing will handle graph updates)
       const response = await mcpClientRef.current.sendMessage(message);
+      
+      const requestTime = Date.now() - startTime;
+      consoleRef.current?.addMessage({
+        type: 'system',
+        content: `⏱️ Request completed in ${requestTime}ms`
+      });
+      
       return response;
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setError(errorMessage);
+      consoleRef.current?.addMessage({
+        type: 'error',
+        content: `❌ Error: ${errorMessage}`
+      });
       throw error;
     } finally {
       setIsLoading(false);
