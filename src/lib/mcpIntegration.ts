@@ -306,31 +306,39 @@ The graph represents a knowledge base with interconnected concepts, entities, an
     }
   }
 
-  async readGraph(strategy: CacheStrategyType = CacheStrategy.CACHE_FIRST): Promise<GraphData> {
+  async readGraph(strategy: CacheStrategyType = CacheStrategy.NETWORK_FIRST): Promise<GraphData> {
     debugLog('Graph', 'Reading graph with strategy:', strategy);
     
-    // Check cache first if strategy allows
+    // For read_graph commands, always fetch fresh data first
     if (strategy === CacheStrategy.CACHE_FIRST || strategy === CacheStrategy.STALE_WHILE_REVALIDATE) {
       const cachedData = graphCache.get(CACHE_KEYS.FULL_GRAPH);
-      if (cachedData) {
-        debugLog('Graph', 'Returning cached data');
-        if (strategy === CacheStrategy.STALE_WHILE_REVALIDATE) {
-          // Refresh in background
-          debugLog('Graph', 'Refreshing cache in background');
-          this.readGraphFromMCP().then(data => {
-            graphCache.set(CACHE_KEYS.FULL_GRAPH, data);
-            debugLog('Graph', 'Background cache refresh completed');
-          }).catch(error => {
-            debugLog('Error', 'Background cache refresh failed:', error);
-          });
-        }
+      debugLog('Graph', 'Cache check result:', {
+        hasCachedData: !!cachedData,
+        cachedNodeCount: cachedData?.nodes?.length || 0,
+        cachedLinkCount: cachedData?.links?.length || 0,
+        cacheAge: cachedData ? 'unknown' : 'no cache'
+      });
+      
+      if (cachedData && strategy === CacheStrategy.CACHE_FIRST) {
+        debugLog('Graph', 'Returning cached data (cache-first strategy)');
         return cachedData;
       }
     }
 
-    // Fetch from MCP
+    // Always fetch fresh data for explicit read_graph commands
+    debugLog('Graph', 'Fetching fresh data from MCP server...');
     const data = await this.readGraphFromMCP();
+    
+    debugLog('Graph', 'Fresh data received:', {
+      nodeCount: data.nodes.length,
+      linkCount: data.links.length,
+      nodeNames: data.nodes.map(n => n.name).slice(0, 5),
+      updating_cache: true
+    });
+    
     graphCache.set(CACHE_KEYS.FULL_GRAPH, data);
+    debugLog('Graph', 'Cache updated with fresh data');
+    
     return data;
   }
 
@@ -342,11 +350,20 @@ The graph represents a knowledge base with interconnected concepts, entities, an
         'Please use the read_graph MCP tool to get the complete graph structure with all nodes and relationships.'
       );
       
+      debugLog('Graph', 'MCP response received, extracting graph data...');
       const graphData = this.extractGraphDataFromResponse(response);
-      debugLog('Graph', 'Graph data extracted:', {
+      
+      debugLog('Graph', 'Graph data extraction completed:', {
         nodes: graphData.nodes.length,
-        links: graphData.links.length
+        links: graphData.links.length,
+        nodeTypes: [...new Set(graphData.nodes.map(n => n.type))],
+        sampleNodeNames: graphData.nodes.slice(0, 3).map(n => n.name),
+        linkTypes: [...new Set(graphData.links.map(l => l.relationType))]
       });
+      
+      if (graphData.nodes.length === 0) {
+        debugLog('Graph', 'WARNING: No nodes extracted from MCP response');
+      }
       
       return graphData;
     } catch (error) {

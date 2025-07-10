@@ -279,11 +279,39 @@ function App() {
       if (message.toLowerCase().includes('read graph')) {
         consoleRef.current?.addMessage({
           type: 'system',
-          content: 'Using read_graph MCP tool to fetch complete graph...'
+          content: '🔄 Starting read_graph command...'
         });
         
+        consoleRef.current?.addMessage({
+          type: 'system',
+          content: '📡 Calling Claude API with MCP read_graph tool...'
+        });
+        
+        const startTime = Date.now();
         const newGraphData = await mcpClientRef.current.readGraph();
+        const requestTime = Date.now() - startTime;
+        
+        consoleRef.current?.addMessage({
+          type: 'system',
+          content: `⏱️ MCP request completed in ${requestTime}ms`
+        });
+        
         if (newGraphData.nodes.length > 0) {
+          consoleRef.current?.addMessage({
+            type: 'system',
+            content: `📊 Received: ${newGraphData.nodes.length} nodes, ${newGraphData.links.length} links`
+          });
+          
+          consoleRef.current?.addMessage({
+            type: 'system',
+            content: `🏷️ Node types: ${[...new Set(newGraphData.nodes.map(n => n.type))].join(', ')}`
+          });
+          
+          consoleRef.current?.addMessage({
+            type: 'system',
+            content: `📝 Sample nodes: ${newGraphData.nodes.slice(0, 3).map(n => n.name).join(', ')}${newGraphData.nodes.length > 3 ? '...' : ''}`
+          });
+          
           setGraphState(prev => ({
             ...prev,
             data: newGraphData
@@ -292,13 +320,22 @@ function App() {
           
           consoleRef.current?.addMessage({
             type: 'mcp_tool',
-            content: `Graph updated: ${newGraphData.nodes.length} nodes, ${newGraphData.links.length} links`,
+            content: `✅ Graph updated: ${newGraphData.nodes.length} nodes, ${newGraphData.links.length} links`,
             toolName: 'read_graph'
           });
           
-          return `Successfully loaded graph with ${newGraphData.nodes.length} nodes and ${newGraphData.links.length} relationships.`;
+          consoleRef.current?.addMessage({
+            type: 'system',
+            content: `💾 Graph data cached and UI updated`
+          });
+          
+          return `✅ Successfully loaded graph with ${newGraphData.nodes.length} nodes and ${newGraphData.links.length} relationships.\n\n📋 Node Details:\n${newGraphData.nodes.map(n => `• ${n.name} (${n.type}) - ${n.observations.length} observations`).join('\n')}`;
         } else {
-          return 'Graph loaded but no data was returned.';
+          consoleRef.current?.addMessage({
+            type: 'error',
+            content: '❌ No graph data received from MCP server'
+          });
+          return '❌ Graph loaded but no data was returned. Check MCP server connection and data.';
         }
       }
       
