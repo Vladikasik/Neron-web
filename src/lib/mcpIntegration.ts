@@ -54,7 +54,7 @@ export interface MCPConnectionStatus {
 }
 
 // Debug logging utility
-const debugLog = (category: string, message: string, data?: any) => {
+const debugLog = (category: string, message: string, data?: unknown) => {
   console.log(`[MCP ${category}] ${message}`, data || '');
 };
 
@@ -69,47 +69,28 @@ export class MCPClient {
     errors: []
   };
 
-  private systemPrompt = `You are a specialized AI assistant for graph-based knowledge management. You MUST use MCP tools for ALL graph operations.
+  private systemPrompt = `You are a helpful AI assistant that can work with graph data through MCP tools when appropriate.
 
-⚠️ CRITICAL: You have access to Neo4j MCP tools through the "memory" server. You MUST use these tools for EVERY request - DO NOT respond with text only.
+# Available MCP Tools:
+- read_graph() - Get complete graph structure 
+- find_nodes(names) - Find specific nodes by name
+- create_entities(entities) - Create new entities
+- create_relations(relations) - Create relationships
+- add_observations(observations) - Add observations
 
-# Available MCP Tools (ALL ENABLED):
-1. read_graph() - Get complete graph structure (triggers full graph reload)
-2. find_nodes(names) - Find specific nodes by name (triggers node highlighting)  
-3. create_entities(entities) - Create new entities
-4. create_relations(relations) - Create new relationships
-5. add_observations(observations) - Add observations to entities
-6. delete_entities(entityNames) - Delete entities
-7. delete_observations(deletions) - Delete observations
-8. delete_relations(relations) - Delete relationships
-9. search_nodes(query) - Search for nodes
-10. open_nodes(names) - Open specific nodes
-11. Any other Neo4j MCP tools available
+# When to Use MCP Tools:
+- Use read_graph() when user asks to see/load/refresh the complete graph
+- Use find_nodes() when user wants to find/search specific nodes  
+- Use create_entities() when user wants to add new concepts/nodes
+- Use create_relations() when user wants to connect entities
 
-# MANDATORY TOOL USAGE RULES - NO EXCEPTIONS:
-🔥 NEVER respond with just text - you MUST use the appropriate MCP tool FIRST
-🔥 ALWAYS use read_graph() when user asks about the complete graph, wants to see all data, or says "read graph"
-🔥 ALWAYS use find_nodes() when user wants to find, search, or highlight specific nodes
-🔥 ALWAYS use create_entities() when user wants to add new concepts, ideas, or entities
-🔥 ALWAYS use create_relations() when user wants to connect concepts or entities
-🔥 If you don't use an MCP tool, you FAILED your task
+# Guidelines:
+- You can answer questions without using tools when appropriate
+- Use tools when the user explicitly requests graph operations
+- When you use read_graph() or find_nodes(), the user's graph will update automatically
+- Provide helpful responses whether you use tools or not
 
-# Response Format:
-1. Use the appropriate MCP tool FIRST (mandatory)
-2. After receiving tool results, provide a brief summary
-3. The user's graph visualization will automatically update from your tool usage
-
-# Examples:
-User: "Show me the graph" 
-You: [Use read_graph() tool immediately] → Brief summary of nodes found
-
-User: "Find Tesla"
-You: [Use find_nodes(["Tesla"]) tool immediately] → Brief summary of found nodes
-
-User: "Add a new AI concept"
-You: [Use create_entities() tool immediately] → Confirm creation
-
-REMEMBER: Tool usage is MANDATORY. The graph visualization updates automatically when you use tools correctly.`;
+Feel free to have normal conversations and only use MCP tools when they're actually needed for graph operations.`;
 
   async connect(): Promise<boolean> {
     debugLog('Connection', 'Testing MCP connection...');
@@ -260,7 +241,7 @@ REMEMBER: Tool usage is MANDATORY. The graph visualization updates automatically
          data.content.forEach((item: MCPContent, index: number) => {
            debugLog('Tool Detection', `Content block ${index}:`, {
              type: item.type,
-             hasText: 'text' in item && !!(item as any).text,
+             hasText: 'text' in item && !!(item as MCPContentBlock).text,
              hasName: 'name' in item,
              hasServername: 'server_name' in item,
              hasInput: 'input' in item,
@@ -345,22 +326,6 @@ REMEMBER: Tool usage is MANDATORY. The graph visualization updates automatically
   async readGraph(strategy: CacheStrategyType = CacheStrategy.NETWORK_FIRST): Promise<GraphData> {
     debugLog('Graph', 'Reading graph with strategy:', strategy);
     
-    // For read_graph commands, always fetch fresh data first
-    if (strategy === CacheStrategy.CACHE_FIRST || strategy === CacheStrategy.STALE_WHILE_REVALIDATE) {
-      const cachedData = graphCache.get(CACHE_KEYS.FULL_GRAPH);
-      debugLog('Graph', 'Cache check result:', {
-        hasCachedData: !!cachedData,
-        cachedNodeCount: cachedData?.nodes?.length || 0,
-        cachedLinkCount: cachedData?.links?.length || 0,
-        cacheAge: cachedData ? 'unknown' : 'no cache'
-      });
-      
-      if (cachedData && strategy === CacheStrategy.CACHE_FIRST) {
-        debugLog('Graph', 'Returning cached data (cache-first strategy)');
-        return cachedData;
-      }
-    }
-
     // Always fetch fresh data for explicit read_graph commands
     debugLog('Graph', 'Fetching fresh data from MCP server...');
     const data = await this.readGraphFromMCP();
@@ -383,7 +348,7 @@ REMEMBER: Tool usage is MANDATORY. The graph visualization updates automatically
     
     try {
       const response = await this.sendRawMessage(
-        'Please use the read_graph MCP tool to get the complete graph structure with all nodes and relationships.'
+        'Use the read_graph MCP tool to get the complete graph structure with all nodes and relationships.'
       );
       
       debugLog('Graph', 'MCP response received, extracting graph data...');
@@ -413,7 +378,7 @@ REMEMBER: Tool usage is MANDATORY. The graph visualization updates automatically
     
     try {
       const response = await this.sendRawMessage(
-        `Please use the find_nodes MCP tool to find these specific nodes: ${nodeNames.join(', ')}`
+        `Use the find_nodes MCP tool to find these specific nodes: ${nodeNames.join(', ')}`
       );
       
       const graphData = this.extractGraphDataFromResponse(response);
@@ -444,9 +409,6 @@ REMEMBER: Tool usage is MANDATORY. The graph visualization updates automatically
   async sendMessage(message: string): Promise<string> {
     debugLog('Message', 'Sending user message:', message.substring(0, 100) + '...');
     
-    // Check if this is a graph-related command that requires MCP tools
-    const isGraphCommand = this.isGraphRelatedCommand(message);
-    
     try {
       const response = await this.sendRawMessage(message);
       
@@ -457,26 +419,8 @@ REMEMBER: Tool usage is MANDATORY. The graph visualization updates automatically
       debugLog('Message', 'MCP tool analysis:', {
         toolUses: mcpToolUses.length,
         toolResults: mcpToolResults.length,
-        toolNames: mcpToolUses.map(t => t.name),
-        isGraphCommand
+        toolNames: mcpToolUses.map(t => t.name)
       });
-      
-      // Validate MCP tool usage for graph commands
-      if (isGraphCommand && mcpToolUses.length === 0) {
-        debugLog('Validation', 'Graph command detected but no MCP tools used!');
-        return `❌ ERROR: You requested a graph operation but I didn't use any MCP tools. This is a system failure. 
-
-🔧 Command detected: "${message}"
-⚠️ Expected MCP tools but got text-only response.
-
-Please try your command again. I should use tools like:
-- "read graph" → read_graph() tool
-- "find nodes" → find_nodes() tool  
-- "create entity" → create_entities() tool
-- "add relation" → create_relations() tool
-
-The graph visualization will only update when I use the correct MCP tools.`;
-      }
       
       // Process successful tool results
       if (mcpToolResults.length > 0) {
@@ -485,8 +429,8 @@ The graph visualization will only update when I use the correct MCP tools.`;
       
       // Extract text content from response
       const textContent = response.content
-        ?.filter((c: any) => c.type === 'text')
-        .map((c: any) => c.text)
+        ?.filter((c): c is MCPContentBlock => c.type === 'text')
+        .map((c: MCPContentBlock) => c.text)
         .join('\n') || 'No response received';
 
       debugLog('Message', 'Response extracted:', textContent.substring(0, 100) + '...');
@@ -695,20 +639,6 @@ The graph visualization will only update when I use the correct MCP tools.`;
   async refreshConnectionStatus(): Promise<MCPConnectionStatus> {
     await this.connect();
     return this.serverStatus;
-  }
-
-  private isGraphRelatedCommand(message: string): boolean {
-    const lowerMessage = message.toLowerCase();
-    const graphKeywords = [
-      'read graph', 'show graph', 'display graph', 'load graph',
-      'find node', 'find nodes', 'search node', 'search nodes',
-      'create entity', 'add entity', 'new entity', 'create node',
-      'add relation', 'create relation', 'connect', 'link',
-      'delete node', 'remove node', 'delete entity',
-      'show me', 'display', 'get all', 'list all'
-    ];
-    
-    return graphKeywords.some(keyword => lowerMessage.includes(keyword));
   }
 }
 
