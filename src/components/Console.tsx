@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useImperativeHandle, forwardRef, useEffect } from 'react';
-import { Minus, Terminal, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, Terminal } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +44,7 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
   const [isLoading, setIsLoading] = useState(false);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [isExpanded, setIsExpanded] = useState(true);
+
   
   // Enhanced positioning with better defaults
   const [position, setPosition] = useState({ x: 24, y: window.innerHeight - 320 });
@@ -316,40 +316,29 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="btn-matrix h-5 w-5 p-0 hover:bg-primary/20"
-            title={isExpanded ? "Minimize" : "Expand"}
-          >
-            {isExpanded ? <ChevronDown size={8} /> : <ChevronUp size={8} />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
             onClick={() => setMessages([])}
-            className="btn-matrix h-5 w-5 p-0 hover:bg-primary/20"
-            title="Clear"
+            className="btn-matrix h-5 w-5 p-0 hover:bg-warning/30"
+            title="Clear Console"
           >
-            <span className="text-matrix-2xs">CLR</span>
+            <span className="text-matrix-2xs text-warning">CLR</span>
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={onToggle}
             className="btn-matrix h-5 w-5 p-0 hover:bg-destructive/30"
-            title="Close"
+            title="Close Console"
           >
-            <Minus size={8} />
+            <X size={8} className="text-destructive" />
           </Button>
         </div>
       </div>
 
       {/* Messages Area */}
-      {isExpanded && (
-        <>
-          <ScrollArea 
-            className="flex-1 p-matrix-sm"
-            style={{ height: size.height - 100 }}
-          >
+      <ScrollArea 
+        className="flex-1 p-matrix-sm"
+        style={{ height: size.height - 100 }}
+      >
             <div ref={messagesRef} className="space-y-matrix-xs">
               {messages.length === 0 && (
                 <div className="text-center text-muted-foreground/60 text-matrix-xs py-matrix-lg">
@@ -445,11 +434,14 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
                 placeholder="Enter command or ask a question..."
                 disabled={isLoading}
                 className={cn(
-                  "flex-1 bg-transparent border-none text-matrix-sm font-mono text-primary",
+                  "flex-1 bg-transparent border-none text-matrix-sm font-mono",
                   "placeholder-primary/40 focus:ring-0 focus:ring-offset-0 p-0 h-auto",
-                  "focus:placeholder-primary/60"
+                  "focus:placeholder-primary/60 text-primary matrix-text-glow"
                 )}
-                style={{ caretColor: 'hsl(var(--primary))' }}
+                style={{ 
+                  caretColor: 'hsl(145 100% 55%)',
+                  color: 'hsl(145 100% 55%)'
+                }}
                 autoComplete="off"
               />
               {isLoading && (
@@ -462,8 +454,6 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
               </div>
             )}
           </form>
-        </>
-      )}
 
       {/* Resize Handle */}
       <div

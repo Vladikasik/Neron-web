@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Eye, ArrowRight, ArrowLeft, Link, ChevronDown, ChevronUp, CornerDownRight } from 'lucide-react';
+import { X, Eye, ArrowRight, ArrowLeft, Link, CornerDownRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,17 +36,12 @@ const NodeCard: React.FC<NodeCardProps> = ({
     x: selection.position.x,
     y: selection.position.y
   });
-  const [size, setSize] = useState({ width: 320, height: 400 });
+  const [size, setSize] = useState({ width: 340, height: 450 });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const [expandedSections, setExpandedSections] = useState({
-    tags: true,
-    connections: true,
-    notes: false,
-    metadata: false
-  });
+  
   const cardRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<HTMLDivElement>(null);
 
@@ -102,6 +97,17 @@ const NodeCard: React.FC<NodeCardProps> = ({
 
   const extractedTags = tags();
 
+  // Keep card within bounds
+  const keepInBounds = useCallback((newPos: { x: number; y: number }, newSize: { width: number; height: number }) => {
+    const maxX = window.innerWidth - newSize.width;
+    const maxY = window.innerHeight - newSize.height;
+    
+    return {
+      x: Math.max(8, Math.min(newPos.x, maxX)),
+      y: Math.max(8, Math.min(newPos.y, maxY))
+    };
+  }, []);
+
   // Mouse handlers for dragging
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.target === dragRef.current || dragRef.current?.contains(e.target as Node)) {
@@ -119,20 +125,24 @@ const NodeCard: React.FC<NodeCardProps> = ({
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging && !isResizing) {
-      setPosition({
+      const newPos = {
         x: e.clientX - dragOffset.x,
         y: e.clientY - dragOffset.y
-      });
+      };
+      setPosition(keepInBounds(newPos, size));
     } else if (isResizing) {
       const deltaX = e.clientX - resizeStart.x;
       const deltaY = e.clientY - resizeStart.y;
       
-      setSize({
+      const newSize = {
         width: Math.max(280, resizeStart.width + deltaX),
-        height: Math.max(200, resizeStart.height + deltaY)
-      });
+        height: Math.max(300, resizeStart.height + deltaY)
+      };
+      
+      setSize(newSize);
+      setPosition(prev => keepInBounds(prev, newSize));
     }
-  }, [isDragging, isResizing, dragOffset, resizeStart]);
+  }, [isDragging, isResizing, dragOffset, resizeStart, keepInBounds, size]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -150,13 +160,6 @@ const NodeCard: React.FC<NodeCardProps> = ({
     e.preventDefault();
     e.stopPropagation();
   }, [size]);
-
-  const toggleSection = useCallback((section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  }, []);
 
   useEffect(() => {
     if (isDragging || isResizing) {
@@ -195,7 +198,7 @@ const NodeCard: React.FC<NodeCardProps> = ({
       onMouseDown={handleMouseDown}
     >
       {/* Enhanced Matrix Header */}
-      <CardHeader className="p-matrix-xs">
+      <CardHeader className="p-matrix-sm border-b border-primary/20">
         <div
           ref={dragRef}
           className="flex items-center justify-between cursor-move"
@@ -206,7 +209,7 @@ const NodeCard: React.FC<NodeCardProps> = ({
               style={{ backgroundColor: node.color || 'hsl(var(--primary))' }}
             />
             <div className="min-w-0 flex-1">
-              <h3 className="font-matrix-bold text-matrix-lg text-primary matrix-text-glow truncate">
+              <h3 className="font-matrix-bold text-matrix-md text-primary matrix-text-glow truncate">
                 {node.name.toUpperCase()}
               </h3>
               <div className="text-matrix-xs text-muted-foreground">
@@ -228,243 +231,197 @@ const NodeCard: React.FC<NodeCardProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="p-matrix-sm space-matrix-sm">
-        {/* Enhanced Matrix Stats */}
-        <div className="grid grid-cols-3 space-matrix-xs text-center">
-          <div className="matrix-card bg-primary/10 border-primary/20 p-matrix-xs">
-            <div className="text-matrix-sm font-matrix-bold text-primary matrix-text-glow">{incoming.length}</div>
-            <div className="text-matrix-xs text-muted-foreground">IN</div>
+      {/* Scrollable Content Area */}
+      <ScrollArea style={{ height: size.height - 90 }}>
+        <CardContent className="p-matrix-sm space-y-matrix-sm">
+          {/* Enhanced Matrix Stats */}
+          <div className="grid grid-cols-3 gap-matrix-xs text-center">
+            <div className="metric-card">
+              <div className="metric-value">{incoming.length}</div>
+              <div className="metric-label">IN</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-value">{outgoing.length}</div>
+              <div className="metric-label">OUT</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-value">{totalConnections}</div>
+              <div className="metric-label">TOTAL</div>
+            </div>
           </div>
-          <div className="matrix-card bg-primary/10 border-primary/20 p-matrix-xs">
-            <div className="text-matrix-sm font-matrix-bold text-primary matrix-text-glow">{outgoing.length}</div>
-            <div className="text-matrix-xs text-muted-foreground">OUT</div>
-          </div>
-          <div className="matrix-card bg-primary/10 border-primary/20 p-matrix-xs">
-            <div className="text-matrix-sm font-matrix-bold text-primary matrix-text-glow">{totalConnections}</div>
-            <div className="text-matrix-xs text-muted-foreground">TOTAL</div>
-          </div>
-        </div>
 
-        {/* Expandable Tags */}
-        {(extractedTags.length > 0 || node.tags?.length > 0) && (
-          <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleSection('tags')}
-              className="h-4 w-full justify-between p-1 text-matrix-xs"
-            >
-              Tags ({(node.tags?.length || 0) + extractedTags.length})
-              {expandedSections.tags ? <ChevronUp size={8} /> : <ChevronDown size={8} />}
-            </Button>
-            {expandedSections.tags && (
-              <div className="p-1">
-                <div className="flex flex-wrap gap-1">
-                  {node.tags?.map((tag, index) => (
-                    <Badge key={index} variant="default" className="text-matrix-xs px-2 py-0">
-                      {tag.name}
-                    </Badge>
-                  )) || []}
-                  {extractedTags.map((tag, index) => (
-                    <Badge key={`extracted-${index}`} variant="outline" className="text-matrix-xs px-2 py-0">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
+          {/* Tags Section */}
+          {(extractedTags.length > 0 || node.tags?.length > 0) && (
+            <div className="space-y-matrix-xs">
+              <div className="flex items-center gap-matrix-xs">
+                <span className="text-matrix-sm font-matrix-semibold text-primary matrix-text-glow">TAGS</span>
+                <Badge variant="outline" className="text-matrix-2xs px-1 py-0">
+                  {(node.tags?.length || 0) + extractedTags.length}
+                </Badge>
               </div>
-            )}
-          </div>
-        )}
+              <div className="flex flex-wrap gap-matrix-xs">
+                {node.tags?.map((tag, index) => (
+                  <Badge key={index} variant="default" className="text-matrix-xs px-2 py-0">
+                    {tag.name}
+                  </Badge>
+                )) || []}
+                {extractedTags.map((tag, index) => (
+                  <Badge key={`extracted-${index}`} variant="outline" className="text-matrix-xs px-2 py-0">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
 
-        {/* Expandable Connections */}
-        {(outgoing.length > 0 || incoming.length > 0) && (
-          <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleSection('connections')}
-              className="h-4 w-full justify-between p-1 text-matrix-xs"
-            >
-              Connections ({totalConnections})
-              {expandedSections.connections ? <ChevronUp size={8} /> : <ChevronDown size={8} />}
-            </Button>
-            {expandedSections.connections && (
-              <div className="p-1 space-y-2">
-                {/* Outgoing Links */}
-                {outgoing.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1 mb-1">
-                      <ArrowRight size={8} className="text-primary" />
-                      <span className="text-matrix-xs font-medium">To ({outgoing.length})</span>
-                    </div>
-                    <div className="space-y-1">
-                      {outgoing.map((link, index) => (
-                        <Card
-                          key={index}
-                          className="p-2 bg-card/30 hover:bg-card/50 transition-colors cursor-pointer border"
-                          onClick={() => handleNodeLinkClick(link.targetNode.id)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1 min-w-0 flex-1">
-                              <div
-                                className="w-2 h-2 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: link.targetNode.color || 'hsl(var(--primary))' }}
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="text-matrix-sm font-medium truncate">{link.targetNode.name}</div>
-                              </div>
-                            </div>
-                            <Badge variant="secondary" className="text-matrix-xs px-1 py-0">
-                              {link.relationType}
-                            </Badge>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
+          {/* Connections Section */}
+          {(outgoing.length > 0 || incoming.length > 0) && (
+            <div className="space-y-matrix-xs">
+              <div className="flex items-center gap-matrix-xs">
+                <Link size={10} className="text-primary" />
+                <span className="text-matrix-sm font-matrix-semibold text-primary matrix-text-glow">CONNECTIONS</span>
+                <Badge variant="outline" className="text-matrix-2xs px-1 py-0">
+                  {totalConnections}
+                </Badge>
+              </div>
+              
+              {/* Outgoing Links */}
+              {outgoing.length > 0 && (
+                <div className="space-y-matrix-xs">
+                  <div className="flex items-center gap-matrix-xs">
+                    <ArrowRight size={8} className="text-primary" />
+                    <span className="text-matrix-xs font-medium text-primary">TO ({outgoing.length})</span>
                   </div>
-                )}
-
-                {/* Incoming Links */}
-                {incoming.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1 mb-1">
-                      <ArrowLeft size={8} className="text-primary" />
-                      <span className="text-matrix-xs font-medium">From ({incoming.length})</span>
-                    </div>
-                    <div className="space-y-1">
-                      {incoming.map((link, index) => (
-                        <Card
-                          key={index}
-                          className="p-2 bg-card/30 hover:bg-card/50 transition-colors cursor-pointer border"
-                          onClick={() => handleNodeLinkClick(link.targetNode.id)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1 min-w-0 flex-1">
-                              <div
-                                className="w-2 h-2 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: link.targetNode.color || 'hsl(var(--primary))' }}
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="text-matrix-sm font-medium truncate">{link.targetNode.name}</div>
-                              </div>
-                            </div>
-                            <Badge variant="secondary" className="text-matrix-xs px-1 py-0">
-                              {link.relationType}
-                            </Badge>
+                  <div className="space-y-matrix-xs max-h-32 overflow-y-auto">
+                    {outgoing.map((link, index) => (
+                      <Card
+                        key={index}
+                        className="p-matrix-xs bg-card/30 hover:bg-card/50 transition-colors cursor-pointer border-primary/20"
+                        onClick={() => handleNodeLinkClick(link.targetNode.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-matrix-xs min-w-0 flex-1">
+                            <div
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: link.targetNode.color || 'hsl(var(--primary))' }}
+                            />
+                            <div className="text-matrix-xs font-medium truncate">{link.targetNode.name}</div>
                           </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Observations */}
-        {node.observations.length > 0 && (
-          <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleSection('notes')}
-              className="h-4 w-full justify-between p-1 text-matrix-xs"
-            >
-              <div className="flex items-center gap-1">
-                <Eye size={6} />
-                Notes ({node.observations.length})
-              </div>
-              {expandedSections.notes ? <ChevronUp size={8} /> : <ChevronDown size={8} />}
-            </Button>
-            {expandedSections.notes && (
-              <div className="p-1">
-                <ScrollArea className="max-h-32">
-                  <div className="space-y-0.5">
-                    {node.observations.map((obs, index) => (
-                      <Card key={index} className="p-1 bg-card/30 border">
-                        <div className="text-[7px] text-muted-foreground leading-tight">
-                          {obs}
+                          <Badge variant="secondary" className="text-matrix-2xs px-1 py-0">
+                            {link.relationType}
+                          </Badge>
                         </div>
                       </Card>
                     ))}
                   </div>
-                </ScrollArea>
-              </div>
-            )}
-          </div>
-        )}
+                </div>
+              )}
 
-        {/* Expandable Metadata */}
-        {node.metadata && (
-          <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleSection('metadata')}
-              className="h-4 w-full justify-between p-1 text-matrix-xs"
-            >
-              Metadata
-              {expandedSections.metadata ? <ChevronUp size={8} /> : <ChevronDown size={8} />}
-            </Button>
-            {expandedSections.metadata && (
-              <div className="p-1 space-y-1">
-                <div className="grid grid-cols-2 gap-1 text-matrix-xs">
-                  <div>
-                    <span className="text-muted-foreground">Importance:</span>
-                    <span className="ml-1 font-medium">{node.metadata.importance || 5}/10</span>
+              {/* Incoming Links */}
+              {incoming.length > 0 && (
+                <div className="space-y-matrix-xs">
+                  <div className="flex items-center gap-matrix-xs">
+                    <ArrowLeft size={8} className="text-primary" />
+                    <span className="text-matrix-xs font-medium text-primary">FROM ({incoming.length})</span>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Keywords:</span>
-                    <span className="ml-1 font-medium">{node.metadata.keywords?.length || 0}</span>
+                  <div className="space-y-matrix-xs max-h-32 overflow-y-auto">
+                    {incoming.map((link, index) => (
+                      <Card
+                        key={index}
+                        className="p-matrix-xs bg-card/30 hover:bg-card/50 transition-colors cursor-pointer border-primary/20"
+                        onClick={() => handleNodeLinkClick(link.targetNode.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-matrix-xs min-w-0 flex-1">
+                            <div
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: link.targetNode.color || 'hsl(var(--primary))' }}
+                            />
+                            <div className="text-matrix-xs font-medium truncate">{link.targetNode.name}</div>
+                          </div>
+                          <Badge variant="secondary" className="text-matrix-2xs px-1 py-0">
+                            {link.relationType}
+                          </Badge>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
                 </div>
-                {node.metadata.keywords && (
-                  <div className="flex flex-wrap gap-1">
-                    {node.metadata.keywords.slice(0, 8).map((keyword, i) => (
-                      <Badge key={i} variant="outline" className="text-matrix-xs px-1 py-0">
+              )}
+            </div>
+          )}
+
+          {/* Notes Section */}
+          {node.observations.length > 0 && (
+            <div className="space-y-matrix-xs">
+              <div className="flex items-center gap-matrix-xs">
+                <Eye size={10} className="text-primary" />
+                <span className="text-matrix-sm font-matrix-semibold text-primary matrix-text-glow">NOTES</span>
+                <Badge variant="outline" className="text-matrix-2xs px-1 py-0">
+                  {node.observations.length}
+                </Badge>
+              </div>
+              <div className="space-y-matrix-xs max-h-40 overflow-y-auto">
+                {node.observations.map((obs, index) => (
+                  <Card key={index} className="p-matrix-xs bg-card/30 border-primary/20">
+                    <div className="text-matrix-xs text-muted-foreground leading-relaxed">
+                      {obs}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Metadata Section */}
+          {node.metadata && (
+            <div className="space-y-matrix-xs">
+              <span className="text-matrix-sm font-matrix-semibold text-primary matrix-text-glow">METADATA</span>
+              <div className="space-y-matrix-xs">
+                <div className="grid grid-cols-2 gap-matrix-xs text-matrix-xs">
+                  <div className="bg-card/30 p-matrix-xs rounded border-primary/20">
+                    <span className="text-muted-foreground">Importance:</span>
+                    <div className="text-primary font-medium">{node.metadata.importance || 5}/10</div>
+                  </div>
+                  <div className="bg-card/30 p-matrix-xs rounded border-primary/20">
+                    <span className="text-muted-foreground">Keywords:</span>
+                    <div className="text-primary font-medium">{node.metadata.keywords?.length || 0}</div>
+                  </div>
+                </div>
+                {node.metadata.keywords && node.metadata.keywords.length > 0 && (
+                  <div className="flex flex-wrap gap-matrix-xs">
+                    {node.metadata.keywords.slice(0, 12).map((keyword, i) => (
+                      <Badge key={i} variant="outline" className="text-matrix-2xs px-1 py-0">
                         {keyword}
                       </Badge>
                     ))}
-                    {node.metadata.keywords.length > 8 && (
-                      <Badge variant="outline" className="text-matrix-xs px-1 py-0">
-                        +{node.metadata.keywords.length - 8}
+                    {node.metadata.keywords.length > 12 && (
+                      <Badge variant="outline" className="text-matrix-2xs px-1 py-0">
+                        +{node.metadata.keywords.length - 12} more
                       </Badge>
                     )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Connection Summary */}
-        {totalConnections > 0 && (
-          <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleSection('notes')}
-              className="h-4 w-full justify-between p-1 text-matrix-xs"
-            >
-              <div className="flex items-center gap-1">
-                <Link size={6} />
-                Summary
-              </div>
-              {expandedSections.notes ? <ChevronUp size={8} /> : <ChevronDown size={8} />}
-            </Button>
-            {expandedSections.notes && (
-              <Card className="p-1 bg-card/30 border">
-                <div className="text-matrix-xs text-muted-foreground space-y-0">
+          {/* Network Summary */}
+          {totalConnections > 0 && (
+            <div className="space-y-matrix-xs">
+              <span className="text-matrix-sm font-matrix-semibold text-primary matrix-text-glow">NETWORK SUMMARY</span>
+              <Card className="p-matrix-xs bg-primary/10 border-primary/30">
+                <div className="text-matrix-xs text-primary space-y-1">
                   <div>• {new Set([...incoming.map(l => l.targetNode.id), ...outgoing.map(l => l.targetNode.id)]).size} unique connections</div>
-                  <div>• Types: {Array.from(new Set([...incoming.map(l => l.relationType), ...outgoing.map(l => l.relationType)])).slice(0, 2).join(', ')}</div>
+                  <div>• Types: {Array.from(new Set([...incoming.map(l => l.relationType), ...outgoing.map(l => l.relationType)])).slice(0, 3).join(', ')}</div>
                   {node.layer && <div>• Layer: {node.layer.name}</div>}
+                  <div>• Centrality: {totalConnections > 5 ? 'High' : totalConnections > 2 ? 'Medium' : 'Low'}</div>
                 </div>
               </Card>
-            )}
-          </div>
-        )}
-      </CardContent>
+            </div>
+          )}
+        </CardContent>
+      </ScrollArea>
 
       {/* Resize Handle */}
       <div

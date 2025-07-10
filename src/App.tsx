@@ -567,7 +567,7 @@ function App() {
   }, []);
 
   return (
-    <div className="h-screen w-screen bg-background matrix-bg no-scrollbar-x overflow-hidden">
+    <div className="h-screen w-screen bg-background matrix-bg overflow-hidden fixed inset-0">
       {/* Main Content Area */}
       <div className="flex h-full">
         {/* 3D Graph Visualization */}
