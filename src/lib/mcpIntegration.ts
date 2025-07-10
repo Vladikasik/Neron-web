@@ -1,4 +1,4 @@
-import type { GraphData, GraphNode, MCPGraphData, MCPEntity, MCPRelation } from '../types/graph';
+import type { GraphData, GraphNode, GraphLink, MCPGraphData, MCPEntity, MCPRelation } from '../types/graph';
 import { transformMCPToGraphData } from './dataTransformer';
 import { graphCache, CACHE_KEYS, CacheStrategy } from './graphCache';
 import type { CacheStrategyType } from './graphCache';
@@ -128,11 +128,11 @@ The graph represents a knowledge base with interconnected concepts, entities, an
       const response = await this.sendRawMessage('What tools do you have available?');
       
       // Check if MCP tools were used in the response
-      const mcpToolUses = response.content?.filter((c: any) => c.type === 'mcp_tool_use') || [];
-      const hasDebugInfo = response.debug?.mcpServers?.length > 0;
+      const mcpToolUses = response.content?.filter((c): c is MCPToolUse => c.type === 'mcp_tool_use') || [];
+      const hasDebugInfo = response.debug?.mcpServers && response.debug.mcpServers.length > 0;
       
       if (mcpToolUses.length > 0) {
-        this.serverStatus.toolsAvailable = mcpToolUses.map((t: MCPToolUse) => t.name);
+        this.serverStatus.toolsAvailable = mcpToolUses.map((t) => t.name);
       }
       
       return mcpToolUses.length > 0 || hasDebugInfo;
@@ -147,20 +147,68 @@ The graph represents a knowledge base with interconnected concepts, entities, an
     
     try {
       const startTime = Date.now();
+      const isDevelopment = import.meta.env.DEV;
       
-      const response = await fetch('/api/claude', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message,
-          systemPrompt: customSystemPrompt || this.systemPrompt,
-        }),
-      });
+      let response: Response;
+      
+      if (isDevelopment) {
+        // Local development - call Claude API directly
+        debugLog('Request', 'Using direct Claude API for development');
+        
+        const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+        const mcpUrl = import.meta.env.VITE_MCP_URL || 'https://memory.aynshteyn.dev/sse';
+        
+        if (!apiKey) {
+          throw new Error('VITE_ANTHROPIC_API_KEY is required for local development');
+        }
+        
+        const requestPayload = {
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: message }],
+          system: customSystemPrompt || this.systemPrompt,
+          mcp_servers: [{
+            type: "url",
+            url: mcpUrl,
+            name: "memory",
+            tool_configuration: {
+              enabled: true,
+              allowed_tools: ["find_nodes", "read_graph", "create_entities", "create_relations", "add_observations"]
+            }
+          }]
+        };
+
+        response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-beta': 'mcp-client-2025-04-04'
+          },
+          body: JSON.stringify(requestPayload)
+        });
+      } else {
+        // Production - use Vercel serverless function
+        debugLog('Request', 'Using Vercel serverless function for production');
+        
+        response = await fetch('/api/claude', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message,
+            systemPrompt: customSystemPrompt || this.systemPrompt,
+          }),
+        });
+      }
 
       const responseTime = Date.now() - startTime;
-      debugLog('Request', `API response received (${responseTime}ms)`, { status: response.status });
+      debugLog('Request', `API response received (${responseTime}ms)`, { 
+        status: response.status,
+        environment: isDevelopment ? 'development' : 'production'
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -170,12 +218,12 @@ The graph represents a knowledge base with interconnected concepts, entities, an
 
       const data = await response.json();
       
-      // Log MCP tool usage
-      const mcpToolUses = data.content?.filter((c: any) => c.type === 'mcp_tool_use') || [];
-      const mcpToolResults = data.content?.filter((c: any) => c.type === 'mcp_tool_result') || [];
+      // Log MCP tool usage with proper type guards
+      const mcpToolUses = data.content?.filter((c: MCPContent): c is MCPToolUse => c.type === 'mcp_tool_use') || [];
+      const mcpToolResults = data.content?.filter((c: MCPContent): c is MCPToolResult => c.type === 'mcp_tool_result') || [];
       
       debugLog('Response', 'API success', {
-        contentTypes: data.content?.map((c: any) => c.type) || [],
+        contentTypes: data.content?.map((c: MCPContent) => c.type) || [],
         mcpToolsUsed: mcpToolUses.length,
         mcpToolResults: mcpToolResults.length,
         debug: data.debug,
