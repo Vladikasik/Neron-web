@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Code } from 'lucide-react';
+import { Terminal } from 'lucide-react';
 import Graph3D from './components/Graph3D';
 import type { Graph3DRef } from './components/Graph3D';
 import NodeCard from './components/NodeCard';
@@ -9,9 +9,10 @@ import LayerControls from './components/LayerControls';
 import { createMCPClient } from './lib/mcpIntegration';
 import { graphCache, CACHE_KEYS } from './lib/graphCache';
 import { transformMCPToGraphData, extractTags, generateLayers, assignNodesToLayers } from './lib/dataTransformer';
-import type { GraphData, GraphNode, GraphLink, GraphState, NodeSelection, LayerControls as LayerControlsType, NodeTag, NodeMetadata } from './types/graph';
+import type { GraphData, GraphNode, GraphLink, GraphState, NodeSelection, NodeTag, NodeMetadata } from './types/graph';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import './index.css';
 
@@ -552,12 +553,6 @@ function App() {
   }, [error]);
 
   // Layer controls handlers
-  const handleLayerControlsChange = useCallback((controls: LayerControlsType) => {
-    setGraphState(prev => ({
-      ...prev,
-      layerControls: controls
-    }));
-  }, []);
 
   const handleCenterOnLayer = useCallback((layerId: string) => {
     graphRef.current?.centerOnLayer(layerId);
@@ -572,60 +567,189 @@ function App() {
   }, []);
 
   return (
-    <div className="w-screen h-screen bg-background matrix-bg overflow-hidden relative">
-      {/* Main Graph Container */}
-      <div className="w-full h-full">
-        <Graph3D
-          ref={graphRef}
-          data={graphState.data}
-          selectedNodes={graphState.selectedNodes}
-          highlightedNodes={graphState.highlightedNodes}
-          highlightedLinks={graphState.highlightedLinks}
-          isHoverMode={graphState.isHoverMode}
-          layerControls={graphState.layerControls}
-          onNodeHover={handleNodeHover}
-          onNodeClick={handleNodeClick}
-          onNodeDoubleClick={handleNodeDoubleClick}
-          onBackgroundClick={handleBackgroundClick}
-          width={window.innerWidth}
-          height={window.innerHeight}
-        />
+    <div className="h-screen w-screen bg-background matrix-bg no-scrollbar-x overflow-hidden">
+      {/* Main Content Area */}
+      <div className="flex h-full">
+        {/* 3D Graph Visualization */}
+        <div className="flex-1 relative">
+          <Graph3D
+            ref={graphRef}
+            data={graphState.data}
+            selectedNodes={graphState.selectedNodes}
+            highlightedNodes={graphState.highlightedNodes}
+            highlightedLinks={graphState.highlightedLinks}
+            isHoverMode={graphState.isHoverMode}
+            layerControls={graphState.layerControls}
+            onNodeHover={handleNodeHover}
+            onNodeClick={handleNodeClick}
+            onNodeDoubleClick={handleNodeDoubleClick}
+            onBackgroundClick={handleBackgroundClick}
+          />
+          
+          {/* Error Display */}
+          {error && (
+            <Card className="absolute top-4 left-4 p-matrix-md bg-destructive/10 border-destructive/30 max-w-md">
+              <div className="text-matrix-sm text-destructive">
+                {error}
+              </div>
+            </Card>
+          )}
+        </div>
+
+        {/* Enhanced Right Sidebar */}
+        <div className="w-80 h-full matrix-card border-l border-border bg-card/95 backdrop-blur-md">
+          <div className="h-full overflow-y-auto no-scrollbar-x p-matrix-md space-y-matrix-md">
+            {/* Project Overview Dashboard Card */}
+            <Card className="dashboard-card">
+              <div className="p-matrix-lg">
+                <div className="flex items-center justify-between mb-matrix-md">
+                  <h2 className="text-matrix-lg font-matrix-bold matrix-text-glow uppercase tracking-wide">
+                    .NERON GRAPH VISUALIZATION PROJECT
+                  </h2>
+                  <div className="w-2 h-2 bg-primary rounded-full matrix-pulse"></div>
+                </div>
+                
+                {/* Project Status Metrics */}
+                <div className="grid grid-cols-3 gap-matrix-sm mb-matrix-md">
+                  <div className="metric-card">
+                    <div className="metric-value">{graphState.data.nodes.length}</div>
+                    <div className="metric-label">NODES</div>
+                  </div>
+                  <div className="metric-card">
+                    <div className="metric-value">{graphState.data.links.length}</div>
+                    <div className="metric-label">LINKS</div>
+                  </div>
+                  <div className="metric-card">
+                    <div className="metric-value">{graphState.data.layers?.length || 0}</div>
+                    <div className="metric-label">LAYERS</div>
+                  </div>
+                </div>
+
+                {/* Quick Stats */}
+                <div className="space-y-matrix-xs text-matrix-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">PROJECT • LAYER:</span>
+                    <span className="matrix-text-glow">GRAPH</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">STATUS:</span>
+                    <Badge variant="default" className="text-matrix-2xs px-1 py-0">ACTIVE</Badge>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Layer Controls */}
+            <LayerControls
+              graphData={graphState.data}
+              layerControls={graphState.layerControls}
+              onLayerControlsChange={(controls) =>
+                setGraphState(prev => ({ ...prev, layerControls: controls }))
+              }
+              onCenterOnLayer={handleCenterOnLayer}
+              onIsolateLayer={handleIsolateLayer}
+              onShowAllLayers={handleShowAllLayers}
+            />
+
+            {/* Enhanced Node Information */}
+            <Card className="dashboard-card">
+              <div className="p-matrix-lg">
+                <h3 className="text-matrix-sm font-matrix-semibold matrix-text-glow mb-matrix-md uppercase tracking-wide">
+                  GRAPH INTELLIGENCE
+                </h3>
+                
+                {/* All Nodes List - Enhanced */}
+                <div className="space-y-matrix-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-matrix-xs text-muted-foreground">ENTITY NETWORK</span>
+                    <Badge variant="outline" className="text-matrix-2xs px-1 py-0">
+                      {graphState.data.nodes.length} TOTAL
+                    </Badge>
+                  </div>
+                  
+                  <div className="max-h-48 overflow-y-auto space-y-matrix-xs">
+                    {graphState.data.nodes.map((node) => (
+                      <Card 
+                        key={node.id} 
+                        className="p-matrix-sm cursor-pointer hover:bg-accent/50 transition-colors border border-border/50"
+                        onClick={() => handleNodeCardClick(node.id)}
+                      >
+                        <div className="flex items-center gap-matrix-xs">
+                          <div
+                            className="w-2 h-2 rounded-full flex-shrink-0 matrix-glow"
+                            style={{ backgroundColor: node.color || 'hsl(var(--primary))' }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-matrix-xs font-matrix-medium truncate">
+                              {node.name}
+                            </div>
+                            <div className="text-matrix-2xs text-muted-foreground">
+                              {node.type} • {node.observations.length} notes
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className="text-matrix-2xs px-1 py-0">
+                            {/* Connection count */}
+                            {graphState.data.links.filter(link => 
+                              (typeof link.source === 'string' ? link.source : link.source.id) === node.id ||
+                              (typeof link.target === 'string' ? link.target : link.target.id) === node.id
+                            ).length}
+                          </Badge>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Activity Feed */}
+            <Card className="dashboard-card">
+              <div className="p-matrix-lg">
+                <h3 className="text-matrix-sm font-matrix-semibold matrix-text-glow mb-matrix-md uppercase tracking-wide">
+                  SYSTEM ACTIVITY
+                </h3>
+                <div className="space-y-matrix-xs text-matrix-xs">
+                  <div className="flex items-center gap-matrix-xs">
+                    <div className="w-1 h-1 bg-success rounded-full"></div>
+                    <span className="text-muted-foreground">MCP connection established</span>
+                  </div>
+                  <div className="flex items-center gap-matrix-xs">
+                    <div className="w-1 h-1 bg-info rounded-full"></div>
+                    <span className="text-muted-foreground">Graph data loaded successfully</span>
+                  </div>
+                  <div className="flex items-center gap-matrix-xs">
+                    <div className="w-1 h-1 bg-warning rounded-full"></div>
+                    <span className="text-muted-foreground">Awaiting AI interaction...</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
       </div>
 
-      {/* Layer Controls Panel */}
-      <LayerControls
-        graphData={graphState.data}
-        layerControls={graphState.layerControls}
-        onLayerControlsChange={handleLayerControlsChange}
-        onCenterOnLayer={handleCenterOnLayer}
-        onIsolateLayer={handleIsolateLayer}
-        onShowAllLayers={handleShowAllLayers}
-        className="fixed top-2 right-2 w-64 max-h-[70vh] z-20"
-      />
-
-      {/* Console Toggle Button */}
+      {/* Floating Console Toggle Button */}
       <Button
-        onClick={() => setIsConsoleVisible(prev => !prev)}
+        onClick={() => setIsConsoleVisible(!isConsoleVisible)}
         className={cn(
-          "fixed bottom-1 left-1 z-30 shadow-lg transition-all duration-200 h-6 w-6 p-0",
-          isConsoleVisible 
-            ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-            : "bg-card border hover:bg-accent"
+          "btn-floating",
+          isConsoleVisible && "matrix-glow-strong"
         )}
-        title="Toggle Console (Press /)"
+        title="Toggle Console (Press / key)"
       >
-        <Code size={10} />
+        <Terminal size={20} className="matrix-text-glow" />
       </Button>
 
-      {/* Console */}
+      {/* Enhanced Console */}
       <Console
         ref={consoleRef}
         isVisible={isConsoleVisible}
-        onToggle={() => setIsConsoleVisible(false)}
+        onToggle={() => setIsConsoleVisible(!isConsoleVisible)}
         onSendMessage={handleSendMessage}
+        className="matrix-terminal"
       />
 
-      {/* Enhanced Node Cards with Layer Information */}
+      {/* Draggable Node Cards */}
       {graphState.selectedNodes.map((selection, index) => (
         <NodeCard
           key={`${selection.node.id}-${index}`}
@@ -634,61 +758,9 @@ function App() {
           allLinks={graphState.data.links}
           onClose={() => handleCloseNodeCard(index)}
           onNodeClick={handleNodeCardClick}
+          className="matrix-card"
         />
       ))}
-
-      {/* Layer Status Indicator */}
-      {graphState.layerControls.isolatedLayer && (
-        <div className="fixed top-1 left-1/2 transform -translate-x-1/2 z-20">
-          <Card className="px-2 py-0.5 bg-primary text-primary-foreground">
-            <div className="text-[8px] font-medium">
-              Isolated: {graphState.data.layers?.find(l => l.id === graphState.layerControls.isolatedLayer)?.name || 'Unknown'}
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Hover Info Card */}
-      {graphState.hoveredNode && graphState.isHoverMode && (
-        <Card 
-          className={cn(
-            "fixed z-30 max-w-xs pointer-events-none shadow-lg border bg-card/95 backdrop-blur-sm",
-            "matrix-glow"
-          )}
-          style={{ 
-            left: Math.min(window.innerWidth / 2 + 50, window.innerWidth - 200),
-            top: 50
-          }}
-        >
-          <div className="p-2">
-            <h4 className="font-semibold text-foreground text-sm">{graphState.hoveredNode.name}</h4>
-            <p className="text-xs text-muted-foreground">{graphState.hoveredNode.type}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {graphState.hoveredNode.observations.length} observations
-            </p>
-          </div>
-        </Card>
-      )}
-
-      {/* Keyboard Shortcuts Help */}
-      <Card className="fixed bottom-2 right-2 z-20 bg-card/80 backdrop-blur-sm border hidden sm:block">
-        <div className="p-2 text-xs text-muted-foreground space-y-1">
-          <div>Press <code className="bg-muted px-1 rounded">H</code> to toggle hover mode</div>
-          <div>Press <code className="bg-muted px-1 rounded">/</code> to toggle console</div>
-          <div>Click to select{!graphState.isHoverMode && ", multiple when hover off"}</div>
-          <div>Double-click to highlight connections</div>
-        </div>
-      </Card>
-
-      {/* Mobile Help Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="fixed top-2 right-2 z-20 sm:hidden bg-card/80 backdrop-blur-sm border h-8 w-8 p-0 text-xs"
-        title="Help: H=hover mode, /=console, click=select"
-      >
-        ?
-      </Button>
     </div>
   );
 }
