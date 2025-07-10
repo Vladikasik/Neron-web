@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+/* Simple Matrix Theme - No Complex Variables */
+ 
+/* Global Matrix Theme Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  background-color: #000000;
+  color: #00ff41;
+}
+
+body {
+  background-color: #000000;
+  color: #00ff41;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+#root {
+  background-color: #000000;
+  color: #00ff41;
+  min-height: 100vh;
+}
+
+/* Matrix Effects */
+.matrix-glow {
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+}
+
+.matrix-border {
+  border-color: rgba(0, 255, 65, 0.5);
+}
+
+.matrix-text {
+  color: #00ff41;
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+}
+
+.matrix-bg {
+  background: radial-gradient(circle at center, rgba(0, 255, 65, 0.05), transparent);
+}

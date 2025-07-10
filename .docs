@@ -1,0 +1,106 @@
+#MAIN STACK
+- React 
+- Shadcn
+- Graph react-force-graph-3d 
+- Mono theme
+- Vercel
+
+# GRAPH
+
+## GRAPH DATA FLOW
+The data flow is from ai mcp tool uses to the data transformer, then to graph and sometimes stored in cash
+read_graph is used then we "UPDATE CASH VERSION ON WEB" meaning realoading the whole graph on cache
+find_nodes for "highlight / centering" on the chosen nodes among all 
+from the tool output
+
+## GRAPH DATA FROM AI WITH MCP FORMAT
+{"type":"mcp_tool_use",
+"id":"mcptoolu_01W8kBppbmYW3o8kAG8VZf18",
+"name":"find_nodes",
+"input": {"names":["Aurora Borealis","Nikola Tesla"]},
+"server_name":"memory"},
+{"type":"mcp_tool_result",
+"tool_use_id":"mcptoolu_01W8kBppbmYW3o8kAG8VZf18",
+"is_error":false,
+"content":[
+    {"type":"text",
+    "text":"{\n  \"entities\": [\n    {\n      \"name\": \"Nikola Tesla\",\n      \"type\": \"Historical Figure\",\n      \"observations\": [\n        \"Serbian-American inventor and electrical engineer (1856-1943)\",\n        \"Pioneered the development of alternating current (AC) electrical systems\",\n        \"Held over 300 patents for his inventions\",\n        \"Conducted groundbreaking research on wireless power transmission\",\n        \"Had an obsession with the number 3 and exhibited eccentric behaviors\",\n        \"Died alone in New York City, leaving behind mysterious unpublished research\"\n      ]\n    },\n    {\n      \"name\": \"Aurora Borealis\",\n      \"type\": \"Natural Phenomenon\",\n      \"observations\": [\n        \"Spectacular light display caused by solar particles interacting with Earth's magnetosphere\",\n        \"Occurs primarily in polar regions between 60-75 degrees latitude\",\n        \"Colors range from green to red, blue, and purple depending on altitude and gas composition\",\n        \"Best viewed during dark winter months with minimal light pollution\",\n        \"Has been observed and recorded by humans for over 2,000 years\"\n      ]\n    }\n  ],\n  \"relations\": [\n    {\n      \"source\": \"Nikola Tesla\",\n      \"target\": \"Aurora Borealis\",\n      \"relationType\": \"studied\"\n    },\n    {\n      \"source\": \"Aurora Borealis\",\n      \"target\": \"Nikola Tesla\",\n      \"relationType\": \"inspired\"\n    }\n  ]\n}"}]},{"type":"text","text":"Perfect! I've successfully created 2 interesting nodes with relations between them and retrieved them using the MCP tools:\n\n## Created Entities:\n1. **Aurora Borealis** (Natural Phenomenon) - A spectacular light display with detailed observations about its scientific properties and cultural significance\n2. **Nikola Tesla** (Historical Figure) - The famous inventor with fascinating details about his life and work\n\n## Created Relations:\n- **Tesla studied the Aurora Borealis** - Tesla was fascinated by natural electrical phenomena and studied the Aurora as inspiration for his wireless power transmission experiments\n- **Aurora Borealis inspired Tesla** - The natural electrical display served as inspiration for Tesla's theories about wireless transmission of electricity\n\n## Retrieved Results:\nThe `find_nodes` tool successfully retrieved both entities along with their complete observation details and the relations between them. The connection between these two creates an interesting narrative about how natural phenomena can inspire scientific innovation!"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":14918,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1342,"service_tier":"standard","server_tool_use":{"web_search_requests":0}}}
+
+## GRAPH STACK Visualisation
+Main link of the libruary
+https://github.com/vasturiano/react-force-graph
+WE ONLY USE react-force-graph-3d 
+
+## GRAPH UX AND SHORTCUTS
+[HOVER ON]
+WHEN HOVERING - "WINDOW IN WINDOW" CARD with informatinon about node
+CLick - CARD SELECTED!! persists but graph recenters around the node and highlights all connected nodes
+[HOVER OFF]
+When Hovering - nothing
+Click - show card + center the view
+Double click - card SELECTED!! card + center the view + highlight all connected nodes
+
+{CARD SELECTED}
+Window with information about the card is draggable and user can move it with mouse
+
+# GRAPH
+
+---
+
+# CONSOLE
+BUTTOM LEFT CORNER OF THE SCREEN "</>" which shows/hides the console
+THE CONSOLE WINDOW IS DRAGGABLE AND HAS - icon to hide it, it can be shown again by clickcing "</>" button or by pressing /
+REDIRECTS ALL REQUESTS TO AI
+OUTPUT ALL AI RESPONSES TO CONSOLE< STREAMABLE IF POSSIBLE AND SHOW TOOL USES ETC FOR BETTER DEBUG
+
+## CLaude connection
+expect .env file to contain the following
+ANTHROPIC_API_KEYs=sk-ant-api..
+MCP_URL=https://memory.aynshteyn.dev/sse
+curl https://api.anthropic.com/v1/messages \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: from .env" \
+  -H "anthropic-version: 2023-06-01" \
+IMPORTANT!!  -H "anthropic-beta: mcp-client-2025-04-04" \
+  -d '{
+    "model": "claude-sonnet-4-20250514", 
+    "max_tokens": 1000,
+    "messages": [{"role": "user", "content": "create 2 nodes with relations between each and interesting description and then retrieve them using mcp tool find nodes"}],
+    "mcp_servers": [{
+      "type": "url",
+      "url": from .env, 
+      "name": "memory"
+    }]
+}'
+
+## Model initialasation
+Initialise the model with following System Prompt
+"You are a helpful assistant that can create nodes and relations between them. Through this ability you help
+people to structurilise their thoughts processes and memories in a fluent ai-graph-based second brain.
+Help user with watether is their request and adaptise and conceptuallly understand which parts of talk you need to write on the graph database depeneding on context
+You can use the mcp tool find_nodes to retrieve nodes and relations between them - notice this would show user the result of this mcp tool imidiatly so better to use it when you want to highlight contextual step and/or change in the data
+You can use tool read_graph to read every node all at one - notice it would reload the whole graph on user deviece (its not a bad thing just to know the user is up to date after this command)
+You can write multiple tags for each node and even more observations since the display of them is flexible and can include the whole page of information if needed + interactive information
+"
+
+# CONSOLE
+
+---
+
+#UI
+USE SHADCN UI LIB WITH MONO THEME 
+IF POSSIBLE INTEGRATE A BIT MORE MATRIX STYLISH WITH COLORS AND MAYBE SOME SUBTLE EFFECTS
+pnpm dlx shadcn@latest add https://tweakcn.com/r/themes/mono.json
+or 
+npx shadcn@latest add https://tweakcn.com/r/themes/mono.json
+or
+yarn dlx shadcn@latest add https://tweakcn.com/r/themes/mono.json
+
+# UI
+
+---
+
+# SHORTCUTS
+PRESS H to HOVER ON/OFF
+PRESS / TO HIDE SHOW CONSOLE
+
