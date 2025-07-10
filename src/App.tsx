@@ -271,35 +271,80 @@ function App() {
     setIsLoading(true);
     consoleRef.current?.addMessage({
       type: 'system',
-      content: `Sending message to Claude API: "${message}"`
+      content: `Processing command: "${message}"`
     });
 
     try {
-      const response = await mcpClientRef.current.sendMessage(message);
-      
-      // Check if this resulted in graph updates
-      if (message.toLowerCase().includes('read graph') || message.toLowerCase().includes('find nodes')) {
-        try {
-          const newGraphData = await mcpClientRef.current.readGraph();
-          if (newGraphData.nodes.length > 0) {
-            setGraphState(prev => ({
-              ...prev,
-              data: newGraphData
-            }));
-            graphCache.set(CACHE_KEYS.FULL_GRAPH, newGraphData);
-            
-            consoleRef.current?.addMessage({
-              type: 'mcp_tool',
-              content: `Graph updated: ${newGraphData.nodes.length} nodes, ${newGraphData.links.length} links`,
-              toolName: 'read_graph'
-            });
-          }
-        } catch (graphError) {
-          console.error('Failed to update graph:', graphError);
+      // Handle graph-specific commands directly
+      if (message.toLowerCase().includes('read graph')) {
+        consoleRef.current?.addMessage({
+          type: 'system',
+          content: 'Using read_graph MCP tool to fetch complete graph...'
+        });
+        
+        const newGraphData = await mcpClientRef.current.readGraph();
+        if (newGraphData.nodes.length > 0) {
+          setGraphState(prev => ({
+            ...prev,
+            data: newGraphData
+          }));
+          graphCache.set(CACHE_KEYS.FULL_GRAPH, newGraphData);
+          
+          consoleRef.current?.addMessage({
+            type: 'mcp_tool',
+            content: `Graph updated: ${newGraphData.nodes.length} nodes, ${newGraphData.links.length} links`,
+            toolName: 'read_graph'
+          });
+          
+          return `Successfully loaded graph with ${newGraphData.nodes.length} nodes and ${newGraphData.links.length} relationships.`;
+        } else {
+          return 'Graph loaded but no data was returned.';
         }
       }
-
+      
+      // Handle find nodes commands
+      if (message.toLowerCase().includes('find nodes') || message.toLowerCase().includes('find_nodes')) {
+        const nodeNames = message.split(/find[_ ]nodes/i)[1]?.trim()
+          .split(/[,\s]+/)
+          .filter(name => name.length > 0) || [];
+          
+        if (nodeNames.length === 0) {
+          return 'Please specify node names to find. Example: "find nodes Tesla, Aurora"';
+        }
+        
+        consoleRef.current?.addMessage({
+          type: 'system', 
+          content: `Using find_nodes MCP tool to search for: ${nodeNames.join(', ')}`
+        });
+        
+        const result = await mcpClientRef.current.findNodes(nodeNames);
+        if (result.nodes.length > 0) {
+          // Highlight found nodes
+          const foundNodeIds = new Set(result.nodes.map(n => n.id));
+          const highlightedLinkIds = new Set(result.highlightedLinks);
+          
+          setGraphState(prev => ({
+            ...prev,
+            highlightedNodes: foundNodeIds,
+            highlightedLinks: highlightedLinkIds
+          }));
+          
+          consoleRef.current?.addMessage({
+            type: 'mcp_tool',
+            content: `Found ${result.nodes.length} nodes, highlighted ${result.highlightedLinks.length} connections`,
+            toolName: 'find_nodes'
+          });
+          
+          return `Found ${result.nodes.length} nodes: ${result.nodes.map(n => n.name).join(', ')}`;
+        } else {
+          return `No nodes found matching: ${nodeNames.join(', ')}`;
+        }
+      }
+      
+      // For all other messages, use regular AI chat
+      const response = await mcpClientRef.current.sendMessage(message);
       return response;
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setError(errorMessage);

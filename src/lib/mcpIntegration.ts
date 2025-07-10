@@ -214,9 +214,55 @@ The graph represents a knowledge base with interconnected concepts, entities, an
 
       const data = await response.json();
       
-      // Log MCP tool usage with proper type guards
-      const mcpToolUses = data.content?.filter((c: MCPContent): c is MCPToolUse => c.type === 'mcp_tool_use') || [];
-      const mcpToolResults = data.content?.filter((c: MCPContent): c is MCPToolResult => c.type === 'mcp_tool_result') || [];
+      // Enhanced debugging for tool use detection
+      debugLog('Tool Detection', 'Starting MCP tool detection analysis...');
+      debugLog('Tool Detection', 'Raw response content:', data.content);
+      debugLog('Tool Detection', 'Content array length:', data.content?.length || 0);
+      
+             // Detailed content analysis
+       if (data.content) {
+         data.content.forEach((item: MCPContent, index: number) => {
+           debugLog('Tool Detection', `Content block ${index}:`, {
+             type: item.type,
+             hasText: 'text' in item && !!(item as any).text,
+             hasName: 'name' in item,
+             hasServername: 'server_name' in item,
+             hasInput: 'input' in item,
+             hasToolUseId: 'tool_use_id' in item,
+             hasIsError: 'is_error' in item,
+             hasContent: 'content' in item,
+             fullObject: item
+           });
+         });
+       }
+
+      // Log MCP tool usage with proper type guards and detailed debugging
+      const mcpToolUses = data.content?.filter((c: MCPContent): c is MCPToolUse => {
+        const isMcpToolUse = c.type === 'mcp_tool_use';
+        debugLog('Tool Detection', `Checking if content is mcp_tool_use:`, {
+          type: c.type,
+          isMcpToolUse,
+          content: c
+        });
+        return isMcpToolUse;
+      }) || [];
+
+      const mcpToolResults = data.content?.filter((c: MCPContent): c is MCPToolResult => {
+        const isMcpToolResult = c.type === 'mcp_tool_result';
+        debugLog('Tool Detection', `Checking if content is mcp_tool_result:`, {
+          type: c.type,
+          isMcpToolResult,
+          content: c
+        });
+        return isMcpToolResult;
+      }) || [];
+      
+      debugLog('Tool Detection', 'Filter results:', {
+        totalContentBlocks: data.content?.length || 0,
+        mcpToolUsesFound: mcpToolUses.length,
+        mcpToolResultsFound: mcpToolResults.length,
+        contentTypes: data.content?.map((c: MCPContent) => c.type) || []
+      });
       
       debugLog('Response', 'API success', {
         contentTypes: data.content?.map((c: MCPContent) => c.type) || [],
@@ -230,16 +276,28 @@ The graph represents a knowledge base with interconnected concepts, entities, an
         debugLog('MCP Tools', 'Tools used in response:', 
           mcpToolUses.map((t: MCPToolUse) => `${t.name} (${t.server_name})`)
         );
-      }
+        debugLog('MCP Tools', 'Full tool use objects:', mcpToolUses);
+             } else {
+         debugLog('MCP Tools', 'No MCP tool uses detected - checking why...');
+         const toolUseLikeItems = data.content?.filter((c: MCPContent) => c.type && c.type.includes('tool')) || [];
+         debugLog('MCP Tools', 'Tool-like content blocks found:', toolUseLikeItems);
+       }
 
-      if (mcpToolResults.length > 0) {
-        const results = mcpToolResults.map((r: MCPToolResult) => ({
-          id: r.tool_use_id,
-          is_error: r.is_error,
-          content_length: r.content?.length || 0
-        }));
-        debugLog('MCP Results', 'Tool results received:', results);
-      }
+       if (mcpToolResults.length > 0) {
+         const results = mcpToolResults.map((r: MCPToolResult) => ({
+           id: r.tool_use_id,
+           is_error: r.is_error,
+           content_length: r.content?.length || 0,
+           content_types: r.content?.map((c: { type: string }) => c.type) || [],
+           full_result: r
+         }));
+         debugLog('MCP Results', 'Tool results received:', results);
+         debugLog('MCP Results', 'Full tool result objects:', mcpToolResults);
+       } else {
+         debugLog('MCP Results', 'No MCP tool results detected - checking why...');
+         const resultLikeItems = data.content?.filter((c: MCPContent) => c.type && (c.type.includes('result') || c.type.includes('tool'))) || [];
+         debugLog('MCP Results', 'Result-like content blocks found:', resultLikeItems);
+       }
 
       return data;
     } catch (error) {
@@ -353,8 +411,12 @@ The graph represents a knowledge base with interconnected concepts, entities, an
 
   private extractGraphDataFromResponse(response: MCPResponse): GraphData {
     try {
+      debugLog('Extract', 'Full response content for debugging:', response.content);
+      
       // Look for MCP tool results that contain graph data
       const mcpToolResults = response.content?.filter((c): c is MCPToolResult => c.type === 'mcp_tool_result') || [];
+      
+      debugLog('Extract', 'Found MCP tool results:', mcpToolResults);
       
       if (mcpToolResults.length === 0) {
         debugLog('Extract', 'No MCP tool results found in response');
@@ -364,14 +426,20 @@ The graph represents a knowledge base with interconnected concepts, entities, an
       // Extract text content from tool results - based on .docs example format
       let combinedText = '';
       for (const result of mcpToolResults) {
+        debugLog('Extract', 'Processing tool result:', result);
+        
         if (!result.is_error && result.content) {
           for (const content of result.content) {
+            debugLog('Extract', 'Processing content block:', content);
             if (content.type === 'text' && content.text) {
+              debugLog('Extract', 'Adding text to combinedText:', content.text.substring(0, 200) + '...');
               combinedText += content.text + '\n';
             }
           }
         }
       }
+
+      debugLog('Extract', 'Combined text from MCP results:', combinedText);
 
       if (!combinedText) {
         debugLog('Extract', 'No text content found in tool results');
@@ -381,9 +449,11 @@ The graph represents a knowledge base with interconnected concepts, entities, an
       // Parse JSON data (format: {entities: [...], relations: [...]})
       try {
         const mcpData: MCPGraphData = JSON.parse(combinedText);
+        debugLog('Extract', 'Parsed MCP data:', mcpData);
         return this.transformMCPToGraphData(mcpData);
       } catch (parseError) {
         debugLog('Extract', 'Failed to parse JSON from MCP result:', parseError);
+        debugLog('Extract', 'Raw text that failed to parse:', combinedText);
         return { nodes: [], links: [] };
       }
     } catch (error) {
