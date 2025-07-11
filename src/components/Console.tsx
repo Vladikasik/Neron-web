@@ -175,7 +175,7 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
     }
 
     if (userMessage.toLowerCase() === 'help') {
-      const helpMessage = 'NERON CHAT COMMANDS: clear, help, status. Ask questions about the graph.';
+      const helpMessage = 'Neron Chat commands: clear, help, status. Ask questions about the graph.';
       setMessages(prev => [...prev, {
         type: 'system',
         content: helpMessage,
@@ -290,8 +290,8 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
       <div ref={messagesRef} className="tactical-console-content">
         {messages.length === 0 && (
           <div className="text-center tactical-text-dim py-4">
-            <div className="tactical-text-sm">NERON CHAT READY</div>
-            <div className="tactical-text-xs mt-1">TYPE 'HELP' FOR COMMANDS</div>
+            <div className="tactical-text-sm">Neron Chat Ready</div>
+            <div className="tactical-text-xs mt-1">Type 'help' for commands</div>
           </div>
         )}
         
@@ -329,7 +329,7 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="ENTER COMMAND..."
+          placeholder="enter command..."
           disabled={isLoading}
           className="tactical-console-input input"
           autoComplete="off"
