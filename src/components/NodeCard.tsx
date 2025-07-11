@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Eye, ArrowRight, ArrowLeft, Link, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
+
+import { useState, useRef, useEffect, useCallback, createRef } from 'react';
+import { X } from 'lucide-react';
 import type { GraphNode, GraphLink, NodeSelection } from '../types/graph';
 
 interface NodeCardProps {
@@ -15,6 +16,13 @@ interface LinkInfo {
   targetNode: GraphNode;
   relationType: string;
   direction: 'incoming' | 'outgoing';
+}
+
+interface ScrollableElement {
+  id: string;
+  type: 'observation' | 'outgoing' | 'incoming' | 'tag' | 'metadata';
+  content: string;
+  ref: React.RefObject<HTMLDivElement | null>;
 }
 
 const NodeCard: React.FC<NodeCardProps> = ({
@@ -35,13 +43,16 @@ const NodeCard: React.FC<NodeCardProps> = ({
   });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [resizeDirection, setResizeDirection] = useState<'se' | 'sw' | 'ne' | 'nw' | null>(null);
+  
+  // Element highlighting for custom scroll
+  const [highlightedElementIndex, setHighlightedElementIndex] = useState(-1);
+  const [scrollableElements, setScrollableElements] = useState<ScrollableElement[]>([]);
   
   const cardRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<HTMLDivElement>(null);
-  const resizeRef = useRef<HTMLDivElement>(null);
 
   const { node } = selection;
 
@@ -81,6 +92,63 @@ const NodeCard: React.FC<NodeCardProps> = ({
   const { incoming, outgoing } = connections();
   const totalConnections = incoming.length + outgoing.length;
 
+  // Build scrollable elements list
+  useEffect(() => {
+    const elements: ScrollableElement[] = [];
+    
+    // Add observations
+    node.observations?.forEach((obs, index) => {
+      elements.push({
+        id: `obs-${index}`,
+        type: 'observation',
+        content: obs,
+        ref: createRef()
+      });
+    });
+    
+    // Add outgoing connections
+    outgoing.forEach((link, index) => {
+      elements.push({
+        id: `out-${index}`,
+        type: 'outgoing',
+        content: link.targetNode.name,
+        ref: createRef()
+      });
+    });
+    
+    // Add incoming connections
+    incoming.forEach((link, index) => {
+      elements.push({
+        id: `in-${index}`,
+        type: 'incoming',
+        content: link.targetNode.name,
+        ref: createRef()
+      });
+    });
+
+    setScrollableElements(elements);
+  }, [node.observations, outgoing, incoming]);
+
+  // Custom scroll handler
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    
+    if (scrollableElements.length === 0) return;
+    
+    const direction = e.deltaY > 0 ? 1 : -1;
+    const newIndex = Math.max(-1, Math.min(scrollableElements.length - 1, highlightedElementIndex + direction));
+    
+    setHighlightedElementIndex(newIndex);
+    
+    // Scroll to highlighted element
+    if (newIndex >= 0 && scrollableElements[newIndex].ref.current) {
+      scrollableElements[newIndex].ref.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, [highlightedElementIndex, scrollableElements]);
+
   // Keep card within bounds
   const keepInBounds = useCallback((newPos: { x: number; y: number }) => {
     const maxX = window.innerWidth - size.width;
@@ -94,16 +162,27 @@ const NodeCard: React.FC<NodeCardProps> = ({
 
   // Drag functionality
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.target === dragRef.current || dragRef.current?.contains(e.target as Node)) {
-      setIsDragging(true);
-      const rect = cardRef.current?.getBoundingClientRect();
-      if (rect) {
-        setDragOffset({
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top
-        });
+    if (e.target instanceof HTMLElement) {
+      if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+        return;
       }
-      e.preventDefault();
+      
+      if (e.target.classList.contains('resize-handle')) {
+        return;
+      }
+      
+      if (e.target === dragRef.current || dragRef.current?.contains(e.target as Node)) {
+        setIsDragging(true);
+        const rect = cardRef.current?.getBoundingClientRect();
+        if (rect) {
+          setDragOffset({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+          });
+        }
+        e.preventDefault();
+        e.stopPropagation();
+      }
     }
   }, []);
 
@@ -122,33 +201,63 @@ const NodeCard: React.FC<NodeCardProps> = ({
   }, []);
 
   // Resize functionality
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    if (e.target === resizeRef.current) {
-      setIsResizing(true);
-      setResizeStart({
-        x: e.clientX,
-        y: e.clientY,
-        width: size.width,
-        height: size.height
-      });
-      e.preventDefault();
-    }
+  const handleResizeStart = useCallback((e: React.MouseEvent, direction: 'se' | 'sw' | 'ne' | 'nw') => {
+    setIsResizing(true);
+    setResizeDirection(direction);
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: size.width,
+      height: size.height
+    });
+    e.preventDefault();
+    e.stopPropagation();
   }, [size]);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {
-    if (isResizing) {
-      const newWidth = Math.max(280, resizeStart.width + (e.clientX - resizeStart.x));
-      const newHeight = Math.max(200, resizeStart.height + (e.clientY - resizeStart.y));
+    if (isResizing && resizeDirection) {
+      const deltaX = e.clientX - resizeStart.x;
+      const deltaY = e.clientY - resizeStart.y;
       
-      setSize({
-        width: Math.min(newWidth, window.innerWidth - position.x),
-        height: Math.min(newHeight, window.innerHeight - position.y)
-      });
+      let newWidth = resizeStart.width;
+      let newHeight = resizeStart.height;
+      let newX = position.x;
+      let newY = position.y;
+      
+      switch (resizeDirection) {
+        case 'se':
+          newWidth = Math.max(280, resizeStart.width + deltaX);
+          newHeight = Math.max(200, resizeStart.height + deltaY);
+          break;
+        case 'sw':
+          newWidth = Math.max(280, resizeStart.width - deltaX);
+          newHeight = Math.max(200, resizeStart.height + deltaY);
+          newX = position.x + (resizeStart.width - newWidth);
+          break;
+        case 'ne':
+          newWidth = Math.max(280, resizeStart.width + deltaX);
+          newHeight = Math.max(200, resizeStart.height - deltaY);
+          newY = position.y + (resizeStart.height - newHeight);
+          break;
+        case 'nw':
+          newWidth = Math.max(280, resizeStart.width - deltaX);
+          newHeight = Math.max(200, resizeStart.height - deltaY);
+          newX = position.x + (resizeStart.width - newWidth);
+          newY = position.y + (resizeStart.height - newHeight);
+          break;
+      }
+      
+      newWidth = Math.min(newWidth, window.innerWidth - newX);
+      newHeight = Math.min(newHeight, window.innerHeight - newY);
+      
+      setSize({ width: newWidth, height: newHeight });
+      setPosition({ x: newX, y: newY });
     }
-  }, [isResizing, resizeStart, position]);
+  }, [isResizing, resizeDirection, resizeStart, position]);
 
   const handleResizeEnd = useCallback(() => {
     setIsResizing(false);
+    setResizeDirection(null);
   }, []);
 
   useEffect(() => {
@@ -179,12 +288,6 @@ const NodeCard: React.FC<NodeCardProps> = ({
     }
   };
 
-  const handleReset = () => {
-    setSize({ width: 320, height: 400 });
-    setPosition({ x: selection.position.x, y: selection.position.y });
-    setIsExpanded(true);
-  };
-
   return (
     <div
       ref={cardRef}
@@ -195,12 +298,13 @@ const NodeCard: React.FC<NodeCardProps> = ({
         width: size.width,
         height: size.height
       }}
-      onMouseDown={handleMouseDown}
+      onWheel={handleWheel}
     >
       {/* Header */}
       <div
         ref={dragRef}
         className="tactical-node-card-header tactical-no-select"
+        onMouseDown={handleMouseDown}
       >
         <div className="flex items-center gap-2 min-w-0">
           <div
@@ -212,196 +316,215 @@ const NodeCard: React.FC<NodeCardProps> = ({
           </span>
         </div>
         
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="tactical-button tactical-text-xs px-1 py-1"
-            title={isExpanded ? "Collapse" : "Expand"}
-          >
-            {isExpanded ? <Minimize2 size={10} /> : <Maximize2 size={10} />}
-          </button>
-          <button
-            onClick={handleReset}
-            className="tactical-button tactical-text-xs px-1 py-1"
-            title="Reset Size & Position"
-          >
-            <RotateCcw size={10} />
-          </button>
-          <button
-            onClick={onClose}
-            className="tactical-button tactical-text-xs px-1 py-1"
-            title="Close"
-          >
-            <X size={10} />
-          </button>
-        </div>
+        <button
+          onClick={onClose}
+          className="tactical-button tactical-text-xs px-1 py-1"
+          title="Close"
+        >
+          <X size={10} />
+        </button>
       </div>
 
-      {/* Content */}
-      <div className="tactical-node-card-content" style={{ height: isExpanded ? 'calc(100% - 32px - 16px)' : 'auto', overflow: isExpanded ? 'auto' : 'hidden' }}>
-        {/* Compact Info Row */}
-        <div className="flex justify-between items-center mb-2 text-xs">
-          <span className="tactical-text-accent">{node.type}</span>
-          <span className="tactical-text-dim">
-            {totalConnections} CONN • {node.observations?.length || 0} OBS
-          </span>
-        </div>
+      {/* Content - No scrollbars, custom wheel scrolling */}
+      <div 
+        className="tactical-node-card-content" 
+        style={{ 
+          height: 'calc(100% - 32px - 16px)', 
+          overflow: 'hidden',
+          position: 'relative'
+        }}
+      >
+        
+        {/* Scrollable Content Container */}
+        <div 
+          className="w-full h-full"
+          style={{ 
+            overflowY: 'hidden',
+            overflowX: 'hidden',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
+          
+          {/* Compact Info Row */}
+          <div className="flex justify-between items-center mb-2 text-xs">
+            <span className="tactical-text-accent">{node.type}</span>
+            <span className="tactical-text-dim">
+              {totalConnections} CONN • {node.observations?.length || 0} OBS
+            </span>
+          </div>
 
-        {isExpanded && (
-          <>
-            {/* Tags */}
-            {node.tags && node.tags.length > 0 && (
-              <div className="tactical-node-card-field">
-                <div className="tactical-node-card-label">TAGS</div>
-                <div className="tactical-node-card-tags">
-                  {node.tags.map((tag, index) => (
-                    <span key={index} className="tactical-node-card-tag">
-                      {tag.name}
-                      {tag.weight && <span className="text-tactical-text-dim ml-1">({tag.weight})</span>}
-                    </span>
-                  ))}
-                </div>
+          {/* Tags */}
+          {node.tags && node.tags.length > 0 && (
+            <div className="tactical-node-card-field mb-2">
+              <div className="tactical-node-card-label">TAGS</div>
+              <div className="tactical-node-card-tags">
+                {node.tags.map((tag, index) => (
+                  <span key={index} className="tactical-node-card-tag">
+                    {tag.name}
+                    {tag.weight && <span className="text-tactical-text-dim ml-1">({tag.weight})</span>}
+                  </span>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Connections */}
-            {totalConnections > 0 && (
-              <div className="tactical-node-card-field">
-                <div className="tactical-node-card-label">
-                  <Link size={10} className="inline mr-1" />
-                  NETWORK ({totalConnections})
-                </div>
-                
-                {outgoing.length > 0 && (
-                  <div className="mb-2">
-                    <div className="tactical-node-card-label mb-1 text-tactical-secondary">
-                      <ArrowRight size={8} className="inline mr-1" />
-                      OUTGOING ({outgoing.length})
-                    </div>
-                    <div className="space-y-1 max-h-24 overflow-y-auto">
-                      {outgoing.map((link, index) => (
-                        <div
-                          key={index}
-                          className="tactical-bg-surface-alpha p-2 tactical-border cursor-pointer hover:tactical-border-primary transition-colors"
-                          onClick={() => handleNodeLinkClick(link.targetNode.id)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div
-                                className="w-2 h-2 flex-shrink-0"
-                                style={{ backgroundColor: link.targetNode.color || '#00FF66' }}
-                              />
-                              <span className="tactical-text tactical-text-xs truncate">
-                                {link.targetNode.name}
-                              </span>
-                            </div>
-                            <span className="tactical-text tactical-text-dim tactical-text-xs flex-shrink-0 ml-2">
-                              {link.relationType}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {incoming.length > 0 && (
-                  <div>
-                    <div className="tactical-node-card-label mb-1 text-tactical-accent">
-                      <ArrowLeft size={8} className="inline mr-1" />
-                      INCOMING ({incoming.length})
-                    </div>
-                    <div className="space-y-1 max-h-24 overflow-y-auto">
-                      {incoming.map((link, index) => (
-                        <div
-                          key={index}
-                          className="tactical-bg-surface-alpha p-2 tactical-border cursor-pointer hover:tactical-border-primary transition-colors"
-                          onClick={() => handleNodeLinkClick(link.targetNode.id)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div
-                                className="w-2 h-2 flex-shrink-0"
-                                style={{ backgroundColor: link.targetNode.color || '#00FF66' }}
-                              />
-                              <span className="tactical-text tactical-text-xs truncate">
-                                {link.targetNode.name}
-                              </span>
-                            </div>
-                            <span className="tactical-text tactical-text-dim tactical-text-xs flex-shrink-0 ml-2">
-                              {link.relationType}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+          {/* Observations */}
+          {node.observations && node.observations.length > 0 && (
+            <div className="tactical-node-card-field mb-2">
+              <div className="tactical-node-card-label">
+                OBSERVATIONS ({node.observations.length})
               </div>
-            )}
-
-            {/* Observations */}
-            {node.observations && node.observations.length > 0 && (
-              <div className="tactical-node-card-field">
-                <div className="tactical-node-card-label">
-                  <Eye size={10} className="inline mr-1" />
-                  OBSERVATIONS ({node.observations.length})
-                </div>
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {node.observations.map((obs, index) => (
-                    <div key={index} className="tactical-bg-surface-alpha p-2 tactical-border">
+              <div className="space-y-1">
+                {node.observations.map((obs, index) => {
+                  const elementIndex = scrollableElements.findIndex(el => el.id === `obs-${index}`);
+                  const isHighlighted = elementIndex === highlightedElementIndex;
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      ref={scrollableElements[elementIndex]?.ref}
+                      className={`tactical-bg-surface-alpha p-2 tactical-border transition-all duration-200 ${
+                        isHighlighted ? 'tactical-border-primary bg-tactical-primary/10' : ''
+                      }`}
+                    >
                       <div className="tactical-text tactical-text-xs leading-relaxed">
                         {obs}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Metadata */}
-            {node.metadata && (
-              <div className="tactical-node-card-field">
-                <div className="tactical-node-card-label">METADATA</div>
-                <div className="tactical-bg-surface-alpha p-2 tactical-border">
-                  <div className="tactical-text tactical-text-xs space-y-1">
-                    {node.metadata.importance && (
-                      <div className="flex justify-between">
-                        <span>IMPORTANCE:</span>
-                        <span className="tactical-text-primary">{node.metadata.importance}/10</span>
-                      </div>
-                    )}
-                    {node.metadata.keywords && (
-                      <div className="flex justify-between">
-                        <span>KEYWORDS:</span>
-                        <span className="tactical-text-secondary">{node.metadata.keywords.length}</span>
-                      </div>
-                    )}
-                    {node.metadata.connectionStrength && (
-                      <div className="flex justify-between">
-                        <span>CONNECTION:</span>
-                        <span className="tactical-text-accent">{node.metadata.connectionStrength}/10</span>
-                      </div>
-                    )}
+          {/* Connections */}
+          {totalConnections > 0 && (
+            <div className="tactical-node-card-field mb-2">
+              <div className="tactical-node-card-label">
+                NETWORK ({totalConnections})
+              </div>
+              
+              {/* Outgoing Connections */}
+              {outgoing.length > 0 && (
+                <div className="mb-2">
+                  <div className="tactical-node-card-label mb-1 text-tactical-secondary">
+                    OUTGOING ({outgoing.length})
+                  </div>
+                  <div className="space-y-1">
+                    {outgoing.map((link, index) => {
+                      const elementIndex = scrollableElements.findIndex(el => el.id === `out-${index}`);
+                      const isHighlighted = elementIndex === highlightedElementIndex;
+                      
+                      return (
+                        <div
+                          key={index}
+                          ref={scrollableElements[elementIndex]?.ref}
+                          className={`tactical-bg-surface-alpha p-2 tactical-border cursor-pointer transition-all duration-200 ${
+                            isHighlighted ? 'tactical-border-primary bg-tactical-primary/10' : 'hover:tactical-border-primary'
+                          }`}
+                          onClick={() => handleNodeLinkClick(link.targetNode.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div
+                                className="w-2 h-2 flex-shrink-0"
+                                style={{ backgroundColor: link.targetNode.color || '#00FF66' }}
+                              />
+                              <span className="tactical-text tactical-text-xs truncate">
+                                {link.targetNode.name}
+                              </span>
+                            </div>
+                            <span className="tactical-text tactical-text-dim tactical-text-xs flex-shrink-0 ml-2">
+                              {link.relationType}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
+              )}
+
+              {/* Incoming Connections */}
+              {incoming.length > 0 && (
+                <div>
+                  <div className="tactical-node-card-label mb-1 text-tactical-accent">
+                    INCOMING ({incoming.length})
+                  </div>
+                  <div className="space-y-1">
+                    {incoming.map((link, index) => {
+                      const elementIndex = scrollableElements.findIndex(el => el.id === `in-${index}`);
+                      const isHighlighted = elementIndex === highlightedElementIndex;
+                      
+                      return (
+                        <div
+                          key={index}
+                          ref={scrollableElements[elementIndex]?.ref}
+                          className={`tactical-bg-surface-alpha p-2 tactical-border cursor-pointer transition-all duration-200 ${
+                            isHighlighted ? 'tactical-border-primary bg-tactical-primary/10' : 'hover:tactical-border-primary'
+                          }`}
+                          onClick={() => handleNodeLinkClick(link.targetNode.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div
+                                className="w-2 h-2 flex-shrink-0"
+                                style={{ backgroundColor: link.targetNode.color || '#00FF66' }}
+                              />
+                              <span className="tactical-text tactical-text-xs truncate">
+                                {link.targetNode.name}
+                              </span>
+                            </div>
+                            <span className="tactical-text tactical-text-dim tactical-text-xs flex-shrink-0 ml-2">
+                              {link.relationType}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Metadata */}
+          {node.metadata && (
+            <div className="tactical-node-card-field">
+              <div className="tactical-node-card-label">METADATA</div>
+              <div className="tactical-bg-surface-alpha p-2 tactical-border">
+                <div className="tactical-text tactical-text-xs space-y-1">
+                  {node.metadata.importance && (
+                    <div className="flex justify-between">
+                      <span>IMPORTANCE:</span>
+                      <span className="tactical-text-primary">{node.metadata.importance}/10</span>
+                    </div>
+                  )}
+                  {node.metadata.keywords && (
+                    <div className="flex justify-between">
+                      <span>KEYWORDS:</span>
+                      <span className="tactical-text-secondary">{node.metadata.keywords.length}</span>
+                    </div>
+                  )}
+                  {node.metadata.connectionStrength && (
+                    <div className="flex justify-between">
+                      <span>CONNECTION:</span>
+                      <span className="tactical-text-accent">{node.metadata.connectionStrength}/10</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Resize Handle */}
-      {isExpanded && (
-        <div
-          ref={resizeRef}
-          className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize tactical-text-dim"
-          onMouseDown={handleResizeStart}
-          style={{
-            background: 'linear-gradient(-45deg, transparent 0%, transparent 40%, hsl(var(--tactical-border)) 40%, hsl(var(--tactical-border)) 60%, transparent 60%)'
-          }}
-        />
-      )}
+      {/* Corner Resize Handles */}
+      <div className="resize-handle resize-handle-nw" onMouseDown={(e) => handleResizeStart(e, 'nw')} />
+      <div className="resize-handle resize-handle-ne" onMouseDown={(e) => handleResizeStart(e, 'ne')} />
+      <div className="resize-handle resize-handle-sw" onMouseDown={(e) => handleResizeStart(e, 'sw')} />
+      <div className="resize-handle resize-handle-se" onMouseDown={(e) => handleResizeStart(e, 'se')} />
     </div>
   );
 };

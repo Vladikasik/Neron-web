@@ -71,16 +71,26 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
 
   // Dragging functionality
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.target === dragRef.current || dragRef.current?.contains(e.target as Node)) {
-      setIsDragging(true);
-      const rect = consoleRef.current?.getBoundingClientRect();
-      if (rect) {
-        setDragOffset({
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top
-        });
+    // Only allow dragging from the header, excluding buttons
+    if (e.target instanceof HTMLElement) {
+      // Don't drag on buttons
+      if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+        return;
       }
-      e.preventDefault();
+      
+      // Only drag if clicking on the header area
+      if (e.target === dragRef.current || dragRef.current?.contains(e.target as Node)) {
+        setIsDragging(true);
+        const rect = consoleRef.current?.getBoundingClientRect();
+        if (rect) {
+          setDragOffset({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+          });
+        }
+        e.preventDefault();
+        e.stopPropagation();
+      }
     }
   }, []);
 
@@ -234,14 +244,14 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
       className={`tactical-console ${isDragging ? 'tactical-dragging' : ''} ${className}`}
       style={{
         left: position.x,
-        top: position.y,
+        top: position.y
       }}
-      onMouseDown={handleMouseDown}
     >
       {/* Header */}
       <div
         ref={dragRef}
         className="tactical-console-header tactical-no-select"
+        onMouseDown={handleMouseDown}
       >
         <div className="flex items-center gap-2">
           <Terminal size={12} className="tactical-text-primary" />

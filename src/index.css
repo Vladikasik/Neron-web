@@ -327,18 +327,87 @@
     backdrop-filter: blur(8px);
   }
 
-  /* Tactical Console */
+  /* Button positioning classes */
+  .console-toggle-button {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    z-index: 15;
+    min-width: 32px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .keyboard-shortcuts {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 15;
+  }
+
+  /* Tactical Console - Updated to be smaller like card */
   .tactical-console {
     position: fixed;
     bottom: 16px;
     left: 16px;
-    width: 480px;
-    height: 280px;
+    width: 320px;
+    height: 260px;
     background: hsl(var(--tactical-surface) / 0.95);
     border: 1px solid hsl(var(--tactical-border) / 0.5);
     backdrop-filter: blur(12px);
     font-family: 'Courier New', monospace;
     z-index: 1100;
+  }
+
+  /* Resize handles for corners */
+  .resize-handle {
+    position: absolute;
+    background: hsl(var(--tactical-primary) / 0.6);
+    opacity: 0.4;
+    transition: opacity 0.2s;
+    z-index: 50;
+  }
+
+  .resize-handle:hover {
+    opacity: 1;
+  }
+
+  .resize-handle-nw {
+    top: 0;
+    left: 0;
+    width: 8px;
+    height: 8px;
+    cursor: nw-resize;
+    border-top-left-radius: 2px;
+  }
+
+  .resize-handle-ne {
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    cursor: ne-resize;
+    border-top-right-radius: 2px;
+  }
+
+  .resize-handle-sw {
+    bottom: 0;
+    left: 0;
+    width: 8px;
+    height: 8px;
+    cursor: sw-resize;
+    border-bottom-left-radius: 2px;
+  }
+
+  .resize-handle-se {
+    bottom: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    cursor: se-resize;
+    border-bottom-right-radius: 2px;
   }
 
   .tactical-console-header {
@@ -446,7 +515,7 @@
     font-family: 'Courier New', monospace;
     z-index: 1050;
     max-height: 400px;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .tactical-node-card-header {
@@ -466,6 +535,24 @@
 
   .tactical-node-card-content {
     padding: 12px;
+    /* Completely hide scrollbars */
+    overflow: hidden !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .tactical-node-card-content::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tactical-node-card-content * {
+    /* Ensure no child elements show scrollbars */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .tactical-node-card-content *::-webkit-scrollbar {
+    display: none;
   }
 
   .tactical-node-card-field {

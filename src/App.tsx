@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Terminal } from 'lucide-react';
+
 import Graph3D from './components/Graph3D';
 import type { Graph3DRef } from './components/Graph3D';
 import NodeCard from './components/NodeCard';
@@ -402,44 +402,12 @@ function App() {
     }));
   }, []);
 
-  const handleReset = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      selectedNodes: [],
-      highlightedNodes: new Set(),
-      highlightedLinks: new Set(),
-      hoveredNode: null
-    }));
-    
-    graphRef.current?.refresh();
-    
-    consoleRef.current?.addMessage({
-      type: 'system',
-      content: 'GRAPH RESET COMPLETE'
-    });
-  }, []);
 
-  const handleExport = useCallback(() => {
-    const dataStr = JSON.stringify(state.graphData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = 'neron-graph-export.json';
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-    
-    consoleRef.current?.addMessage({
-      type: 'system',
-      content: 'GRAPH DATA EXPORTED'
-    });
-  }, [state.graphData]);
 
   return (
     <div className="tactical-bg w-full h-screen relative">
       
-      {/* 3D Graph */}
+      {/* LAYER: GRAPH (Bottom) */}
       <div className="absolute inset-0 z-[1]">
         <Graph3D
           ref={graphRef}
@@ -457,153 +425,89 @@ function App() {
         />
       </div>
 
-      {/* Tactical HUD */}
-      <div className="tactical-hud">
-        {/* Status Bar */}
-        <div className="tactical-status-bar">
-          <div className="tactical-text tactical-text-primary">
-            NERON TACTICAL INTERFACE // SYSTEM ONLINE
-          </div>
-          <div className="tactical-text tactical-text-dim">
-            NODES: {state.graphData.nodes.length} // LINKS: {state.graphData.links.length}
+      {/* LAYER 0: UI CONTROLS (Above Graph) */}
+      <div className="fixed inset-0 z-[10] pointer-events-none">
+        
+        {/* Console Toggle Button - Bottom Left Corner */}
+        {!state.isConsoleVisible && (
+          <button
+            onClick={handleToggleConsole}
+            className="console-toggle-button pointer-events-auto tactical-button px-3 py-2 tactical-text-xs"
+            title="Toggle Console (Press /)"
+          >
+            /
+          </button>
+        )}
+
+        {/* Keyboard Shortcuts - Bottom Right Corner */}
+        <div className="keyboard-shortcuts pointer-events-none tactical-text tactical-text-dim tactical-text-xs opacity-60">
+          <div className="text-right space-y-1">
+            <div>H: Toggle Hover Mode</div>
+            <div>/: Toggle Console</div>
+            <div>F: Fullscreen</div>
           </div>
         </div>
 
-        {/* Controls Panel */}
-        <div className="tactical-controls">
-          <div className="tactical-panel-header">
-            GRAPH CONTROLS
-          </div>
-          <div className="tactical-panel-content space-y-2">
-            <button 
-              onClick={handleReset}
-              className="tactical-button w-full tactical-text-xs"
-            >
-              RESET GRAPH
-            </button>
-            <button 
-              onClick={handleExport}
-              className="tactical-button w-full tactical-text-xs"
-            >
-              EXPORT DATA
-            </button>
-            <button 
-              onClick={() => {
-                if (document.fullscreenElement) {
-                  document.exitFullscreen();
-                } else {
-                  document.documentElement.requestFullscreen();
-                }
-              }}
-              className="tactical-button w-full tactical-text-xs"
-            >
-              FULLSCREEN
-            </button>
-          </div>
-        </div>
-
-        {/* Transparent Minimap */}
-        <div className="tactical-minimap-transparent">
-          <svg width="200" height="150" viewBox="-150 -150 300 300">
-            {/* Links */}
-            {state.graphData.links.map((link, index) => {
-              const sourceNode = state.graphData.nodes.find(n => n.id === (typeof link.source === 'string' ? link.source : link.source.id));
-              const targetNode = state.graphData.nodes.find(n => n.id === (typeof link.target === 'string' ? link.target : link.target.id));
-              if (!sourceNode || !targetNode) return null;
-              
-              return (
-                <line
-                  key={index}
-                  x1={sourceNode.x || 0}
-                  y1={sourceNode.y || 0}
-                  x2={targetNode.x || 0}
-                  y2={targetNode.y || 0}
-                  stroke="hsl(var(--tactical-primary))"
-                  strokeWidth="1.5"
-                  opacity="0.8"
-                />
-              );
-            })}
-            
-            {/* Nodes */}
-            {state.graphData.nodes.map((node) => (
-              <circle
-                key={node.id}
-                cx={node.x || 0}
-                cy={node.y || 0}
-                r={Math.max(3, (node.size || 5) / 2)}
-                fill={state.highlightedNodes.has(node.id) ? "hsl(var(--tactical-accent))" : "hsl(var(--tactical-primary))"}
-                opacity={state.highlightedNodes.has(node.id) ? 1 : 0.9}
-                stroke={state.highlightedNodes.has(node.id) ? "hsl(var(--tactical-accent))" : "transparent"}
-                strokeWidth="1"
-              />
-            ))}
-          </svg>
-        </div>
-
-        {/* Shortcuts Panel */}
-        <div className="tactical-shortcuts">
-          <div className="tactical-panel-header">
-            SHORTCUTS
-          </div>
-          <div className="tactical-panel-content">
-            <div className="space-y-1 tactical-text-xs">
-              <div className="flex justify-between">
-                <span className="tactical-text-dim">HOVER:</span>
-                <span className="tactical-text-primary">H</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="tactical-text-dim">CONSOLE:</span>
-                <span className="tactical-text-primary">/</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="tactical-text-dim">FULLSCREEN:</span>
-                <span className="tactical-text-primary">F</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="tactical-text-dim">CLICK:</span>
-                <span className="tactical-text-primary">SELECT</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="tactical-text-dim">DBLCLICK:</span>
-                <span className="tactical-text-primary">LOCK</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Console Toggle Button */}
-      {!state.isConsoleVisible && (
-        <button
-          onClick={handleToggleConsole}
-          className="tactical-toggle"
-          title="Open Console"
-        >
-          <Terminal size={14} />
-        </button>
-      )}
-
-      {/* Console */}
-      {state.isConsoleVisible && (
+      {/* LAYER 1: WINDOWS (Above UI Controls) */}
+      <div className="absolute inset-0 z-[20] pointer-events-none">
+        
+        {/* Console Window */}
         <Console
           ref={consoleRef}
           isVisible={state.isConsoleVisible}
           onToggle={handleToggleConsole}
           onSendMessage={handleSendMessage}
+          className="pointer-events-auto"
         />
-      )}
 
-      {/* Node Cards */}
-      {state.selectedNodes.map((selection, index) => (
-        <NodeCard
-          key={selection.node.id}
-          selection={selection}
-          allNodes={state.graphData.nodes}
-          allLinks={state.graphData.links}
-          onClose={() => handleCloseNodeCard(index)}
-        />
-      ))}
+        {/* Node Information Cards */}
+        {state.selectedNodes.map((selection, index) => (
+          <div key={`${selection.node.id}-${index}`} className="pointer-events-auto">
+            <NodeCard
+              selection={selection}
+              allNodes={state.graphData.nodes}
+              allLinks={state.graphData.links}
+              onClose={() => handleCloseNodeCard(index)}
+              onNodeClick={(nodeId) => {
+                const node = state.graphData.nodes.find(n => n.id === nodeId);
+                if (node) {
+                  const mockEvent = { clientX: 400, clientY: 300 } as MouseEvent;
+                  handleNodeClick(node, mockEvent);
+                }
+              }}
+            />
+          </div>
+        ))}
+
+        {/* Hover Card */}
+        {state.isHoverMode && state.hoveredNode && (
+          <div className="pointer-events-none">
+            <NodeCard
+              selection={{
+                node: state.hoveredNode,
+                position: { x: 50, y: 50 },
+                persistent: false
+              }}
+              allNodes={state.graphData.nodes}
+              allLinks={state.graphData.links}
+              onClose={() => {}}
+              className="opacity-90"
+            />
+          </div>
+        )}
+
+      </div>
+
+      {/* Loading Overlay */}
+      {state.isLoading && (
+        <div className="fixed inset-0 z-[50] bg-black/50 flex items-center justify-center">
+          <div className="tactical-text tactical-text-primary">
+            PROCESSING...
+          </div>
+        </div>
+      )}
     </div>
   );
 }
