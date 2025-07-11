@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useImperativeHandle, forwardRef, useEffect } from 'react';
-import { X, Terminal } from 'lucide-react';
+import { X } from 'lucide-react';
 
 export interface ConsoleMessage {
   type: 'user' | 'assistant' | 'system' | 'error' | 'tool' | 'mcp';
@@ -37,6 +37,7 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
   const [isLoading, setIsLoading] = useState(false);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [tokenUsage, setTokenUsage] = useState({ input: 0, output: 0 });
   
   // Tactical positioning with dragging
   const [position, setPosition] = useState({ x: 16, y: window.innerHeight - 320 });
@@ -158,22 +159,30 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
     setIsLoading(true);
     setHistoryIndex(-1);
 
+    // Track input tokens (rough estimate)
+    const inputTokens = Math.ceil(userMessage.length / 4);
+    setTokenUsage(prev => ({ ...prev, input: prev.input + inputTokens }));
+
     // Add to command history
     setCommandHistory(prev => [...prev, userMessage].slice(-50));
 
     // Handle built-in commands
     if (userMessage.toLowerCase() === 'clear') {
       setMessages([]);
+      setTokenUsage({ input: 0, output: 0 });
       setIsLoading(false);
       return;
     }
 
     if (userMessage.toLowerCase() === 'help') {
+      const helpMessage = 'NERON CHAT COMMANDS: clear, help, status. Ask questions about the graph.';
       setMessages(prev => [...prev, {
         type: 'system',
-        content: 'TACTICAL CONSOLE COMMANDS: clear, help, status. Ask questions about the graph.',
+        content: helpMessage,
         timestamp: new Date()
       }]);
+      const outputTokens = Math.ceil(helpMessage.length / 4);
+      setTokenUsage(prev => ({ ...prev, output: prev.output + outputTokens }));
       setIsLoading(false);
       return;
     }
@@ -191,13 +200,19 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
         content: response,
         timestamp: new Date()
       }]);
+      // Track output tokens
+      const outputTokens = Math.ceil(response.length / 4);
+      setTokenUsage(prev => ({ ...prev, output: prev.output + outputTokens }));
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'UNKNOWN ERROR';
       setMessages(prev => [...prev, {
         type: 'error',
-        content: error instanceof Error ? error.message : 'UNKNOWN ERROR',
+        content: errorMessage,
         timestamp: new Date(),
         isError: true
       }]);
+      const outputTokens = Math.ceil(errorMessage.length / 4);
+      setTokenUsage(prev => ({ ...prev, output: prev.output + outputTokens }));
     } finally {
       setIsLoading(false);
     }
@@ -227,15 +242,6 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
     }
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour12: false, 
-      hour: '2-digit', 
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
   if (!isVisible) return null;
 
   return (
@@ -254,12 +260,11 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
         onMouseDown={handleMouseDown}
       >
         <div className="flex items-center gap-2">
-          <Terminal size={12} className="tactical-text-primary" />
           <span className="tactical-text tactical-text-primary">
-            TACTICAL CONSOLE
+            NERON CHAT
           </span>
           <span className="tactical-text tactical-text-dim tactical-text-xs">
-            [{messages.length}]
+            {tokenUsage.input + tokenUsage.output}T
           </span>
         </div>
         
@@ -276,7 +281,7 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
             className="tactical-button tactical-text-xs px-2 py-1"
             title="Close Console"
           >
-            <X size={10} />
+            <X size={8} />
           </button>
         </div>
       </div>
@@ -284,18 +289,14 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
       {/* Messages */}
       <div ref={messagesRef} className="tactical-console-content">
         {messages.length === 0 && (
-          <div className="text-center tactical-text-dim py-8">
-            <Terminal size={24} className="mx-auto mb-2 opacity-50" />
-            <div className="tactical-text-sm">TACTICAL CONSOLE READY</div>
+          <div className="text-center tactical-text-dim py-4">
+            <div className="tactical-text-sm">NERON CHAT READY</div>
             <div className="tactical-text-xs mt-1">TYPE 'HELP' FOR COMMANDS</div>
           </div>
         )}
         
         {messages.map((message, index) => (
           <div key={index} className="tactical-console-message">
-            <div className="tactical-console-message-time">
-              {message.timestamp ? formatTime(message.timestamp) : ''}
-            </div>
             <div className="tactical-console-message-type">
               {getMessagePrefix(message.type)}
             </div>
@@ -307,9 +308,6 @@ const Console = forwardRef<ConsoleRef, ConsoleProps>(({
         
         {isLoading && (
           <div className="tactical-console-message">
-            <div className="tactical-console-message-time">
-              {formatTime(new Date())}
-            </div>
             <div className="tactical-console-message-type">
               AI
             </div>

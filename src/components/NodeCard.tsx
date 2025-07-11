@@ -38,14 +38,11 @@ const NodeCard: React.FC<NodeCardProps> = ({
     y: selection.position.y
   });
   const [size, setSize] = useState({
-    width: 320,
+    width: 400,
     height: 400
   });
   const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const [resizeDirection, setResizeDirection] = useState<'se' | 'sw' | 'ne' | 'nw' | null>(null);
   
   // Element highlighting for custom scroll
   const [highlightedElementIndex, setHighlightedElementIndex] = useState(-1);
@@ -200,65 +197,75 @@ const NodeCard: React.FC<NodeCardProps> = ({
     setIsDragging(false);
   }, []);
 
-  // Resize functionality
-  const handleResizeStart = useCallback((e: React.MouseEvent, direction: 'se' | 'sw' | 'ne' | 'nw') => {
-    setIsResizing(true);
-    setResizeDirection(direction);
-    setResizeStart({
-      x: e.clientX,
-      y: e.clientY,
-      width: size.width,
-      height: size.height
-    });
+  // Resize functionality - Complete rewrite using proper window resizing method
+  const handleResizeStart = useCallback((e: React.MouseEvent, direction: 'se' | 'sw') => {
     e.preventDefault();
     e.stopPropagation();
-  }, [size]);
-
-  const handleResizeMove = useCallback((e: MouseEvent) => {
-    if (isResizing && resizeDirection) {
-      const deltaX = e.clientX - resizeStart.x;
-      const deltaY = e.clientY - resizeStart.y;
+    
+    const startMouseX = e.clientX;
+    const startMouseY = e.clientY;
+    const startWidth = size.width;
+    const startHeight = size.height;
+    const startX = position.x;
+    const startY = position.y;
+    
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startMouseX;
+      const deltaY = moveEvent.clientY - startMouseY;
       
-      let newWidth = resizeStart.width;
-      let newHeight = resizeStart.height;
-      let newX = position.x;
-      let newY = position.y;
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      let newX = startX;
+      let newY = startY;
       
-      switch (resizeDirection) {
-        case 'se':
-          newWidth = Math.max(280, resizeStart.width + deltaX);
-          newHeight = Math.max(200, resizeStart.height + deltaY);
+      switch (direction) {
+        case 'se': // Bottom-right: expand both, no position change
+          newWidth = Math.max(400, startWidth + deltaX);
+          newHeight = Math.max(400, startHeight + deltaY);
           break;
-        case 'sw':
-          newWidth = Math.max(280, resizeStart.width - deltaX);
-          newHeight = Math.max(200, resizeStart.height + deltaY);
-          newX = position.x + (resizeStart.width - newWidth);
-          break;
-        case 'ne':
-          newWidth = Math.max(280, resizeStart.width + deltaX);
-          newHeight = Math.max(200, resizeStart.height - deltaY);
-          newY = position.y + (resizeStart.height - newHeight);
-          break;
-        case 'nw':
-          newWidth = Math.max(280, resizeStart.width - deltaX);
-          newHeight = Math.max(200, resizeStart.height - deltaY);
-          newX = position.x + (resizeStart.width - newWidth);
-          newY = position.y + (resizeStart.height - newHeight);
+          
+        case 'sw': // Bottom-left: expand height, resize width left
+          newWidth = Math.max(400, startWidth - deltaX);
+          newHeight = Math.max(400, startHeight + deltaY);
+          newX = startX - (newWidth - startWidth);
           break;
       }
       
-      newWidth = Math.min(newWidth, window.innerWidth - newX);
-      newHeight = Math.min(newHeight, window.innerHeight - newY);
+      // Only constrain to stay within screen bounds, no size limits
+      // Adjust position if it would go off screen
+      if (newX < 0) {
+        newWidth = newWidth + newX; // reduce width by the amount we're off screen
+        newX = 0;
+      }
+      if (newY < 0) {
+        newHeight = newHeight + newY; // reduce height by the amount we're off screen  
+        newY = 0;
+      }
+      
+      // Ensure we don't expand beyond screen boundaries
+      if (newX + newWidth > window.innerWidth) {
+        newWidth = window.innerWidth - newX;
+      }
+      if (newY + newHeight > window.innerHeight) {
+        newHeight = window.innerHeight - newY;
+      }
+      
+      // Apply final minimum constraints
+      newWidth = Math.max(400, newWidth);
+      newHeight = Math.max(400, newHeight);
       
       setSize({ width: newWidth, height: newHeight });
       setPosition({ x: newX, y: newY });
-    }
-  }, [isResizing, resizeDirection, resizeStart, position]);
-
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-    setResizeDirection(null);
-  }, []);
+    };
+    
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [size, position]);
 
   useEffect(() => {
     if (isDragging) {
@@ -270,17 +277,6 @@ const NodeCard: React.FC<NodeCardProps> = ({
       };
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
-
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleResizeMove);
-      document.addEventListener('mouseup', handleResizeEnd);
-      return () => {
-        document.removeEventListener('mousemove', handleResizeMove);
-        document.removeEventListener('mouseup', handleResizeEnd);
-      };
-    }
-  }, [isResizing, handleResizeMove, handleResizeEnd]);
 
   const handleNodeLinkClick = (nodeId: string) => {
     if (onNodeClick) {
@@ -307,10 +303,6 @@ const NodeCard: React.FC<NodeCardProps> = ({
         onMouseDown={handleMouseDown}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <div
-            className="w-3 h-3 tactical-border-primary flex-shrink-0"
-            style={{ backgroundColor: node.color || '#00FF66' }}
-          />
           <span className="tactical-text tactical-text-primary truncate">
             {node.name}
           </span>
@@ -520,11 +512,23 @@ const NodeCard: React.FC<NodeCardProps> = ({
         </div>
       </div>
 
-      {/* Corner Resize Handles */}
-      <div className="resize-handle resize-handle-nw" onMouseDown={(e) => handleResizeStart(e, 'nw')} />
-      <div className="resize-handle resize-handle-ne" onMouseDown={(e) => handleResizeStart(e, 'ne')} />
-      <div className="resize-handle resize-handle-sw" onMouseDown={(e) => handleResizeStart(e, 'sw')} />
-      <div className="resize-handle resize-handle-se" onMouseDown={(e) => handleResizeStart(e, 'se')} />
+      {/* Bottom Corner Resize Handles Only */}
+      <div 
+        className="resize-handle resize-handle-sw" 
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleResizeStart(e, 'sw');
+        }} 
+      />
+      <div 
+        className="resize-handle resize-handle-se" 
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleResizeStart(e, 'se');
+        }} 
+      />
     </div>
   );
 };
