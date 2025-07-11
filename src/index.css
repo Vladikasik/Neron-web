@@ -4,8 +4,7 @@
 
 @layer base {
   :root {
-    /* Light theme (fallback) */
-    --background: 210 40% 98%;
+    --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -28,513 +27,557 @@
   }
 
   .dark {
-    /* Enhanced Matrix Theme - Professional Green System */
-    --background: 145 100% 0.5%;
-    --foreground: 145 90% 96%;
-    --card: 145 80% 1.8%;
-    --card-foreground: 145 85% 94%;
-    --popover: 145 90% 1.2%;
-    --popover-foreground: 145 90% 96%;
-    --primary: 145 100% 55%;
-    --primary-foreground: 145 100% 2%;
-    --secondary: 145 40% 3.5%;
-    --secondary-foreground: 145 85% 88%;
-    --muted: 145 35% 2.8%;
-    --muted-foreground: 145 55% 68%;
-    --accent: 145 60% 4.2%;
-    --accent-foreground: 145 90% 92%;
-    --destructive: 0 85% 58%;
-    --destructive-foreground: 0 85% 98%;
-    --border: 145 45% 8%;
-    --input: 145 40% 3.5%;
-    --ring: 145 100% 55%;
+    /* Synthetic Tactical Futurism Color System */
+    --background: 0 0% 4%;
+    --foreground: 146 100% 96%;
+    --card: 0 0% 6%;
+    --card-foreground: 146 100% 94%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 146 100% 96%;
+    --primary: 146 100% 50%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 146 100% 88%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 146 50% 65%;
+    --accent: 0 0% 12%;
+    --accent-foreground: 146 100% 92%;
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 146 100% 20%;
+    --input: 0 0% 8%;
+    --ring: 146 100% 50%;
     
-    /* Matrix-specific enhanced colors */
-    --matrix-glow: 145 100% 55%;
-    --matrix-glow-intense: 145 100% 65%;
-    --matrix-dim: 145 30% 15%;
-    --matrix-fade: 145 15% 5%;
-    --matrix-pulse: 145 85% 45%;
-    --matrix-accent: 145 80% 25%;
-    --matrix-highlight: 145 95% 75%;
-    
-    /* Professional dashboard colors */
-    --success: 142 76% 36%;
-    --success-foreground: 142 76% 95%;
-    --warning: 47 96% 53%;
-    --warning-foreground: 47 96% 8%;
-    --info: 210 100% 56%;
-    --info-foreground: 210 100% 98%;
-    
-    /* Enhanced glass effect variables */
-    --glass-bg: 145 80% 1.8% / 0.85;
-    --glass-border: 145 45% 8% / 0.9;
-    --glass-highlight: 145 100% 55% / 0.15;
+    /* Tactical Colors */
+    --tactical-primary: 146 100% 50%;
+    --tactical-secondary: 186 100% 50%;
+    --tactical-accent: 75 100% 70%;
+    --tactical-warning: 60 100% 50%;
+    --tactical-danger: 0 100% 50%;
+    --tactical-surface: 0 0% 6%;
+    --tactical-border: 146 100% 20%;
+    --tactical-text: 146 100% 85%;
+    --tactical-text-dim: 146 50% 65%;
+    --tactical-bg: 0 0% 4%;
+    --tactical-grid: 146 100% 50%;
   }
 
   * {
     border-color: hsl(var(--border));
   }
 
-  body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    font-feature-settings: "rlig" 1, "calt" 1;
-    font-family: 'Geist Mono', 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-    font-size: 10px;
-    line-height: 1.4;
-    font-weight: 400;
-    position: relative;
-    overflow-x: hidden;
-  }
-
   html {
-    font-size: 10px;
-    scroll-behavior: smooth;
+    font-size: 14px;
   }
 
-  /* Enhanced typography scale for professional dashboard */
-  .text-matrix-2xs { font-size: 7px; line-height: 1.1; }
-  .text-matrix-xs { font-size: 8px; line-height: 1.2; }
-  .text-matrix-sm { font-size: 9px; line-height: 1.3; }
-  .text-matrix-base { font-size: 10px; line-height: 1.4; }
-  .text-matrix-lg { font-size: 11px; line-height: 1.4; }
-  .text-matrix-xl { font-size: 12px; line-height: 1.4; }
-  .text-matrix-2xl { font-size: 14px; line-height: 1.4; }
-  .text-matrix-3xl { font-size: 16px; line-height: 1.3; }
-  
-  /* Matrix weight variants */
-  .font-matrix-light { font-weight: 300; }
-  .font-matrix-normal { font-weight: 400; }
-  .font-matrix-medium { font-weight: 500; }
-  .font-matrix-semibold { font-weight: 600; }
-  .font-matrix-bold { font-weight: 700; }
+  body {
+    background-color: hsl(var(--tactical-bg));
+    color: hsl(var(--tactical-text));
+    font-family: 'Courier New', 'SF Mono', 'Monaco', monospace;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: 0.05em;
+    text-rendering: optimizeSpeed;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    font-smooth: never;
+    overflow: hidden;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
 }
 
 @layer components {
-  /* Advanced Matrix background with professional grid */
-  .matrix-bg {
-    background: 
-      /* Subtle grid pattern */
-      linear-gradient(hsl(145 100% 55% / 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(145 100% 55% / 0.02) 1px, transparent 1px),
-      /* Radial gradient overlays for depth */
-      radial-gradient(circle at 20% 30%, hsl(145 80% 25% / 0.08) 0%, transparent 50%),
-      radial-gradient(circle at 80% 70%, hsl(145 80% 25% / 0.06) 0%, transparent 45%),
-      radial-gradient(circle at 50% 90%, hsl(145 85% 45% / 0.04) 0%, transparent 60%),
-      /* Base gradient */
-      linear-gradient(135deg, hsl(var(--background)) 0%, hsl(145 100% 0.8%) 50%, hsl(var(--background)) 100%);
-    background-size: 20px 20px, 20px 20px, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
-    background-attachment: fixed;
+  /* Tactical Grid Background */
+  .tactical-bg {
+    background-color: hsl(var(--tactical-bg));
+    background-image: 
+      linear-gradient(hsl(var(--tactical-grid) / 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--tactical-grid) / 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
     position: relative;
   }
 
-  .matrix-bg::before {
+  .tactical-bg::before {
     content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 30% 40%, hsl(var(--tactical-primary) / 0.05) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  /* Tactical Panel System */
+  .tactical-panel {
+    background: hsl(var(--tactical-surface) / 0.9);
+    border: 1px solid hsl(var(--tactical-border) / 0.3);
+    backdrop-filter: blur(8px);
+    font-family: 'Courier New', monospace;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .tactical-panel-header {
+    background: hsl(var(--tactical-surface));
+    border-bottom: 1px solid hsl(var(--tactical-border) / 0.3);
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: hsl(var(--tactical-primary));
+    letter-spacing: 0.15em;
+  }
+
+  .tactical-panel-content {
+    padding: 12px;
+  }
+
+  /* Tactical Typography */
+  .tactical-text {
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 400;
+    color: hsl(var(--tactical-text));
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    font-smooth: never;
+  }
+
+  .tactical-text-primary {
+    color: hsl(var(--tactical-primary));
+  }
+
+  .tactical-text-secondary {
+    color: hsl(var(--tactical-secondary));
+  }
+
+  .tactical-text-accent {
+    color: hsl(var(--tactical-accent));
+  }
+
+  .tactical-text-dim {
+    color: hsl(var(--tactical-text-dim));
+  }
+
+  .tactical-text-xs {
+    font-size: 10px;
+  }
+
+  .tactical-text-sm {
+    font-size: 12px;
+  }
+
+  .tactical-text-base {
+    font-size: 14px;
+  }
+
+  .tactical-text-lg {
+    font-size: 16px;
+  }
+
+  /* Tactical Button */
+  .tactical-button {
+    background: hsl(var(--tactical-surface));
+    border: 1px solid hsl(var(--tactical-border) / 0.5);
+    color: hsl(var(--tactical-text));
+    padding: 6px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    font-smooth: never;
+  }
+
+  .tactical-button:hover {
+    background: hsl(var(--tactical-border) / 0.2);
+    border-color: hsl(var(--tactical-primary) / 0.6);
+    color: hsl(var(--tactical-primary));
+  }
+
+  .tactical-button:active {
+    background: hsl(var(--tactical-primary) / 0.1);
+    border-color: hsl(var(--tactical-primary));
+  }
+
+  .tactical-button-primary {
+    background: hsl(var(--tactical-primary) / 0.1);
+    border-color: hsl(var(--tactical-primary));
+    color: hsl(var(--tactical-primary));
+  }
+
+  .tactical-button-primary:hover {
+    background: hsl(var(--tactical-primary) / 0.2);
+    box-shadow: 0 0 8px hsl(var(--tactical-primary) / 0.3);
+  }
+
+  /* Tactical Input */
+  .tactical-input {
+    background: hsl(var(--tactical-surface));
+    border: 1px solid hsl(var(--tactical-border) / 0.3);
+    color: hsl(var(--tactical-text));
+    padding: 6px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    font-smooth: never;
+  }
+
+  .tactical-input::placeholder {
+    color: hsl(var(--tactical-text-dim));
+    text-transform: uppercase;
+  }
+
+  .tactical-input:focus {
+    outline: none;
+    border-color: hsl(var(--tactical-primary));
+    box-shadow: 0 0 4px hsl(var(--tactical-primary) / 0.3);
+  }
+
+  /* Tactical HUD Elements */
+  .tactical-hud {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: 
-      repeating-linear-gradient(0deg, 
-        transparent, 
-        transparent 2px, 
-        hsl(145 100% 55% / 0.015) 2px, 
-        hsl(145 100% 55% / 0.015) 3px);
     pointer-events: none;
-    z-index: 1;
+    z-index: 1000;
   }
 
-  /* Professional Glass Cards with enhanced matrix theming */
-  .matrix-card {
-    background: linear-gradient(135deg, 
-      hsl(145 80% 1.8% / 0.85) 0%, 
-      hsl(var(--card) / 0.9) 100%);
-    backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid hsl(145 45% 8% / 0.9);
-    box-shadow: 
-      0 4px 16px hsl(145 100% 0% / 0.15),
-      inset 0 1px 0 hsl(145 100% 55% / 0.15),
-      0 0 0 1px hsl(145 100% 55% / 0.05);
-    position: relative;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  .tactical-hud > * {
+    pointer-events: auto;
   }
 
-  .matrix-card::before {
-    content: '';
+  .tactical-status-bar {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, 
-      hsl(145 95% 75% / 0.03) 0%,
-      transparent 50%,
-      hsl(145 100% 55% / 0.02) 100%);
-    border-radius: inherit;
-    pointer-events: none;
-  }
-
-  .matrix-card:hover {
-    background: linear-gradient(135deg, 
-      hsl(var(--card) / 0.95) 0%, 
-      hsl(var(--accent) / 0.85) 100%);
-    border-color: hsl(145 100% 55% / 0.4);
-    box-shadow: 
-      0 8px 24px hsl(145 100% 0% / 0.25),
-      inset 0 1px 0 hsl(145 95% 75% / 0.2),
-      0 0 0 1px hsl(145 100% 55% / 0.15);
-    transform: translateY(-1px);
-  }
-
-  /* Enhanced Dashboard Cards */
-  .dashboard-card {
-    background: linear-gradient(135deg, 
-      hsl(145 80% 1.8% / 0.85) 0%, 
-      hsl(var(--card) / 0.9) 100%);
-    backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid hsl(145 45% 8% / 0.9);
-    box-shadow: 
-      0 4px 16px hsl(145 100% 0% / 0.15),
-      inset 0 1px 0 hsl(145 100% 55% / 0.15),
-      0 0 0 1px hsl(145 100% 55% / 0.05);
-    position: relative;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 6px;
-  }
-
-  .dashboard-card:hover {
-    border-color: hsl(145 100% 55% / 0.5);
-    box-shadow: 
-      0 6px 20px hsl(145 100% 0% / 0.2),
-      0 0 20px hsl(145 100% 55% / 0.1);
-  }
-
-  /* Professional Button Variants */
-  .btn-matrix {
-    background: linear-gradient(135deg, 
-      hsl(var(--card)) 0%, 
-      hsl(var(--accent)) 100%);
-    border: 1px solid hsl(var(--border));
-    color: hsl(var(--primary));
-    font-family: inherit;
-    font-weight: 500;
-    font-size: 9px;
-    padding: 8px 16px;
-    border-radius: 6px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .btn-matrix::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, 
-      transparent, 
-      hsl(var(--primary) / 0.1), 
-      transparent);
-    transition: left 0.5s;
-  }
-
-  .btn-matrix:hover {
-    background: linear-gradient(135deg, 
-      hsl(var(--accent)) 0%, 
-      hsl(var(--primary) / 0.1) 100%);
-    border-color: hsl(var(--primary) / 0.6);
-    box-shadow: 
-      0 4px 12px hsl(var(--primary) / 0.2),
-      inset 0 1px 0 hsl(var(--primary) / 0.1);
-    transform: translateY(-1px);
-  }
-
-  .btn-matrix:hover::before {
-    left: 100%;
-  }
-
-  .btn-matrix:active {
-    transform: translateY(0);
-    box-shadow: 
-      0 2px 6px hsl(var(--primary) / 0.3),
-      inset 0 1px 0 hsl(var(--primary) / 0.2);
-  }
-
-  /* Floating Action Button */
-  .btn-floating {
-    background: linear-gradient(135deg, 
-      hsl(145 80% 1.8%) 0%, 
-      hsl(145 60% 4.2%) 100%);
-    border: 1px solid hsl(145 45% 8%);
-    color: hsl(145 100% 55%);
-    font-family: inherit;
-    font-weight: 500;
-    font-size: 9px;
-    padding: 8px 16px;
-    border-radius: 50%;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    width: 48px;
-    height: 48px;
-    padding: 0;
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    height: 32px;
+    background: hsl(var(--tactical-surface) / 0.9);
+    border: 1px solid hsl(var(--tactical-border) / 0.3);
+    backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
-    justify-content: center;
-    position: fixed;
-    bottom: 24px;
-    left: 24px;
-    z-index: 50;
-    box-shadow: 
-      0 8px 24px hsl(145 100% 0% / 0.3),
-      0 0 0 1px hsl(145 100% 55% / 0.2);
-  }
-
-  .btn-floating::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, 
-      transparent, 
-      hsl(145 100% 55% / 0.1), 
-      transparent);
-    transition: left 0.5s;
-  }
-
-  .btn-floating:hover {
-    background: linear-gradient(135deg, 
-      hsl(145 60% 4.2%) 0%, 
-      hsl(145 100% 55% / 0.1) 100%);
-    border-color: hsl(145 100% 55% / 0.6);
-    box-shadow: 
-      0 12px 32px hsl(145 100% 0% / 0.4),
-      0 0 0 1px hsl(145 100% 55% / 0.4),
-      0 0 20px hsl(145 100% 55% / 0.2);
-    transform: translateY(-2px) scale(1.05);
-  }
-
-  .btn-floating:hover::before {
-    left: 100%;
-  }
-
-  .btn-floating:active {
-    transform: translateY(0) scale(1);
-    box-shadow: 
-      0 8px 24px hsl(145 100% 0% / 0.3),
-      0 0 0 1px hsl(145 100% 55% / 0.3);
-  }
-
-  /* Enhanced Matrix Effects */
-  .matrix-glow {
-    border: 1px solid hsl(var(--primary) / 0.3);
-    box-shadow: 0 0 8px hsl(var(--primary) / 0.1);
-    transition: all 0.3s ease;
-  }
-
-  .matrix-glow:hover {
-    border-color: hsl(var(--primary) / 0.6);
-    box-shadow: 0 0 16px hsl(var(--primary) / 0.2);
-  }
-
-  .matrix-glow-strong {
-    border: 1px solid hsl(var(--primary) / 0.8);
-    background: hsl(var(--primary) / 0.05);
-    box-shadow: 
-      0 0 12px hsl(var(--primary) / 0.15),
-      inset 0 1px 0 hsl(var(--primary) / 0.1);
-  }
-
-  .matrix-pulse {
-    animation: matrix-pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes matrix-pulse {
-    0%, 100% { 
-      box-shadow: 0 0 8px hsl(var(--primary) / 0.1);
-    }
-    50% { 
-      box-shadow: 0 0 16px hsl(var(--primary) / 0.3);
-    }
-  }
-
-  /* Professional Terminal/Console Styling */
-  .matrix-terminal {
-    font-family: 'Geist Mono', 'SF Mono', monospace;
-    background: linear-gradient(135deg, 
-      hsl(145 100% 0.5% / 0.95) 0%, 
-      hsl(145 35% 2.8% / 0.8) 100%);
-    border: 1px solid hsl(145 45% 8%);
-    color: hsl(145 100% 55%);
-    box-shadow: 
-      0 8px 24px hsl(145 100% 0% / 0.2),
-      inset 0 1px 0 hsl(145 100% 55% / 0.05);
-    backdrop-filter: blur(12px);
-  }
-
-  .matrix-text-glow {
-    color: hsl(145 100% 55%);
-    font-weight: 500;
-    text-shadow: 0 0 4px hsl(145 100% 55% / 0.3);
-  }
-
-  .matrix-text-highlight {
-    color: hsl(145 95% 75%);
+    justify-content: space-between;
+    padding: 0 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
     font-weight: 600;
-    text-shadow: 0 0 6px hsl(145 95% 75% / 0.4);
+    color: hsl(var(--tactical-primary));
   }
 
-  /* Custom Scrollbars - No Side Scrolling */
+  .tactical-minimap {
+    position: absolute;
+    top: 64px;
+    right: 16px;
+    width: 200px;
+    height: 150px;
+    background: hsl(var(--tactical-surface) / 0.9);
+    border: 1px solid hsl(var(--tactical-border) / 0.3);
+    backdrop-filter: blur(8px);
+  }
+
+  .tactical-controls {
+    position: absolute;
+    top: 64px;
+    left: 16px;
+    width: 200px;
+    background: hsl(var(--tactical-surface) / 0.9);
+    border: 1px solid hsl(var(--tactical-border) / 0.3);
+    backdrop-filter: blur(8px);
+  }
+
+  .tactical-shortcuts {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    width: 200px;
+    background: hsl(var(--tactical-surface) / 0.9);
+    border: 1px solid hsl(var(--tactical-border) / 0.3);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Tactical Console */
+  .tactical-console {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    width: 480px;
+    height: 280px;
+    background: hsl(var(--tactical-surface) / 0.95);
+    border: 1px solid hsl(var(--tactical-border) / 0.5);
+    backdrop-filter: blur(12px);
+    font-family: 'Courier New', monospace;
+    z-index: 1100;
+  }
+
+  .tactical-console-header {
+    background: hsl(var(--tactical-surface));
+    border-bottom: 1px solid hsl(var(--tactical-border) / 0.3);
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: hsl(var(--tactical-primary));
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: move;
+  }
+
+  .tactical-console-content {
+    height: calc(100% - 32px - 40px);
+    overflow-y: auto;
+    padding: 8px 12px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .tactical-console-input {
+    border-top: 1px solid hsl(var(--tactical-border) / 0.3);
+    padding: 8px 12px;
+    background: hsl(var(--tactical-surface));
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tactical-console-prompt {
+    color: hsl(var(--tactical-primary));
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .tactical-console-input input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: hsl(var(--tactical-text));
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    outline: none;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    font-smooth: never;
+  }
+
+  .tactical-console-input input::placeholder {
+    color: hsl(var(--tactical-text-dim));
+    text-transform: uppercase;
+  }
+
+  .tactical-console-message {
+    margin-bottom: 4px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .tactical-console-message-time {
+    color: hsl(var(--tactical-text-dim));
+    font-size: 9px;
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+
+  .tactical-console-message-type {
+    color: hsl(var(--tactical-primary));
+    font-size: 9px;
+    min-width: 40px;
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+
+  .tactical-console-message-content {
+    color: hsl(var(--tactical-text));
+    font-size: 11px;
+    line-height: 1.3;
+    flex: 1;
+  }
+
+  .tactical-console-message-error .tactical-console-message-content {
+    color: hsl(var(--tactical-danger));
+  }
+
+  .tactical-console-message-system .tactical-console-message-content {
+    color: hsl(var(--tactical-accent));
+  }
+
+  /* Tactical Node Card */
+  .tactical-node-card {
+    position: fixed;
+    width: 320px;
+    background: hsl(var(--tactical-surface) / 0.95);
+    border: 1px solid hsl(var(--tactical-border) / 0.5);
+    backdrop-filter: blur(12px);
+    font-family: 'Courier New', monospace;
+    z-index: 1050;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .tactical-node-card-header {
+    background: hsl(var(--tactical-surface));
+    border-bottom: 1px solid hsl(var(--tactical-border) / 0.3);
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: hsl(var(--tactical-primary));
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: move;
+  }
+
+  .tactical-node-card-content {
+    padding: 12px;
+  }
+
+  .tactical-node-card-field {
+    margin-bottom: 8px;
+  }
+
+  .tactical-node-card-label {
+    color: hsl(var(--tactical-text-dim));
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 2px;
+  }
+
+  .tactical-node-card-value {
+    color: hsl(var(--tactical-text));
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  .tactical-node-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .tactical-node-card-tag {
+    background: hsl(var(--tactical-primary) / 0.1);
+    border: 1px solid hsl(var(--tactical-primary) / 0.3);
+    color: hsl(var(--tactical-primary));
+    padding: 2px 6px;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Tactical Toggle Button */
+  .tactical-toggle {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    z-index: 1200;
+    background: hsl(var(--tactical-surface));
+    border: 1px solid hsl(var(--tactical-border) / 0.5);
+    color: hsl(var(--tactical-primary));
+    padding: 8px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    font-smooth: never;
+  }
+
+  .tactical-toggle:hover {
+    background: hsl(var(--tactical-primary) / 0.1);
+    border-color: hsl(var(--tactical-primary));
+    box-shadow: 0 0 8px hsl(var(--tactical-primary) / 0.3);
+  }
+
+  /* Scrollbar Styling */
   ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.3);
-    border-radius: 2px;
+    background: hsl(var(--tactical-surface));
   }
 
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, 
-      hsl(var(--primary) / 0.4) 0%, 
-      hsl(var(--primary) / 0.7) 100%);
-    border-radius: 2px;
-    transition: background 0.2s ease;
+    background: hsl(var(--tactical-border));
+    border-radius: 0;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, 
-      hsl(var(--primary) / 0.7) 0%, 
-      hsl(var(--primary)) 100%);
+    background: hsl(var(--tactical-primary));
   }
 
-  ::-webkit-scrollbar-corner {
-    background: transparent;
+  /* Utility Classes */
+  .tactical-glow {
+    box-shadow: 0 0 8px hsl(var(--tactical-primary) / 0.3);
   }
 
-  /* Hide horizontal scrollbars */
-  .no-scrollbar-x {
-    overflow-x: hidden;
+  .tactical-glow-strong {
+    box-shadow: 0 0 16px hsl(var(--tactical-primary) / 0.5);
   }
 
-  .no-scrollbar-x::-webkit-scrollbar:horizontal {
-    display: none;
+  .tactical-border {
+    border: 1px solid hsl(var(--tactical-border) / 0.3);
   }
 
-  /* Professional Spacing System */
-  .space-matrix-2xs { gap: 1px; }
-  .space-matrix-xs { gap: 2px; }
-  .space-matrix-sm { gap: 4px; }
-  .space-matrix-md { gap: 6px; }
-  .space-matrix-lg { gap: 8px; }
-  .space-matrix-xl { gap: 12px; }
-  .space-matrix-2xl { gap: 16px; }
-
-  /* Margin spacing */
-  .mb-matrix-2xs { margin-bottom: 1px; }
-  .mb-matrix-xs { margin-bottom: 2px; }
-  .mb-matrix-sm { margin-bottom: 4px; }
-  .mb-matrix-md { margin-bottom: 6px; }
-  .mb-matrix-lg { margin-bottom: 8px; }
-  .mb-matrix-xl { margin-bottom: 12px; }
-
-  /* Ultra-compact padding system */
-  .p-matrix-2xs { padding: 0.5px; }
-  .p-matrix-xs { padding: 1px; }
-  .p-matrix-sm { padding: 2px; }
-  .p-matrix-md { padding: 4px; }
-  .p-matrix-lg { padding: 6px; }
-  .p-matrix-xl { padding: 8px; }
-  .p-matrix-2xl { padding: 12px; }
-
-  /* Enhanced Selection */
-  ::selection {
-    background: hsl(var(--primary) / 0.25);
-    color: hsl(var(--foreground));
+  .tactical-border-primary {
+    border: 1px solid hsl(var(--tactical-primary) / 0.5);
   }
 
-  /* Professional Focus Styles */
-  .focus-matrix:focus {
-    outline: none;
-    border-color: hsl(var(--primary));
-    box-shadow: 
-      0 0 0 2px hsl(var(--primary) / 0.2),
-      0 0 8px hsl(var(--primary) / 0.1);
+  .tactical-bg-surface {
+    background: hsl(var(--tactical-surface));
   }
 
-  /* Loading States */
-  .matrix-loading {
-    position: relative;
-    overflow: hidden;
+  .tactical-bg-surface-alpha {
+    background: hsl(var(--tactical-surface) / 0.9);
   }
 
-  .matrix-loading::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, 
-      transparent, 
-      hsl(var(--primary) / 0.2), 
-      transparent);
-    animation: matrix-shimmer 1.5s infinite;
+  /* Prevent text selection on UI elements */
+  .tactical-no-select {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
 
-  @keyframes matrix-shimmer {
-    0% { left: -100%; }
-    100% { left: 100%; }
+  /* Dragging states */
+  .tactical-dragging {
+    cursor: move;
+    opacity: 0.9;
   }
 
-  /* Status Indicators */
-  .status-success { color: hsl(var(--success)); }
-  .status-warning { color: hsl(var(--warning)); }
-  .status-error { color: hsl(var(--destructive)); }
-  .status-info { color: hsl(var(--info)); }
-
-  /* Metric Cards */
-  .metric-card {
-    background: linear-gradient(135deg, 
-      hsl(145 80% 1.8% / 0.9) 0%, 
-      hsl(145 60% 4.2% / 0.7) 100%);
-    border: 1px solid hsl(145 45% 8% / 0.8);
-    padding: 6px;
-    text-align: center;
-    min-height: 80px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    border-radius: 6px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .metric-card:hover {
-    border-color: hsl(145 100% 55% / 0.5);
-    box-shadow: 
-      0 6px 20px hsl(145 100% 0% / 0.2),
-      0 0 20px hsl(145 100% 55% / 0.1);
-  }
-
-  .metric-value {
-    font-size: 18px;
-    font-weight: 700;
-    color: hsl(145 100% 55%);
-    text-shadow: 0 0 4px hsl(145 100% 55% / 0.3);
-  }
-
-  .metric-label {
-    font-size: 8px;
-    color: hsl(145 55% 68%);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-top: 2px;
+  .tactical-dragging * {
+    pointer-events: none;
   }
 }

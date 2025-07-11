@@ -1,0 +1,713 @@
+{
+  "visual_style": {
+    "color_palette": {
+      "primary": ["#000000", "#00FF66", "#1A1A1A"],
+      "accents": ["#33FF99", "#00CCFF", "#CCCCCC"]
+    },
+    "aesthetic": "cyberpunk / synthwave",
+    "lighting": "glow and neon-lit, strong contrast with black background",
+    "composition": "center-focused, character in frontal pose with symmetrical elements",
+    "texture": "smooth, synthetic, plastic/metal surfaces",
+    "atmosphere": "futuristic, digital, immersive, slightly dystopian",
+    "depth": "flat 2D layers with faux 3D depth via lighting and gradients"
+  },
+  "ui_style": {
+    "typography": {
+      "style": "pixel / monospaced",
+      "color": "#00FF66",
+      "glow_effect": true
+    },
+    "elements": [
+      {
+        "type": "head-up display (HUD)",
+        "style": "minimalist but futuristic",
+        "color": "#00FF66",
+        "alignment": "symmetrical"
+      },
+      {
+        "type": "data stream / code overlay",
+        "animation": "implied scrolling or blinking",
+        "opacity": "semi-transparent"
+      }
+    ],
+    "layout": {
+      "structure": "grid-like overlays with center-aligned core",
+      "spacing": "tight, compressed"
+    },
+    "iconography": "tech-oriented, low-fi icons with sharp edges"
+  }
+}
+
+{
+  "style_name": "BlackBox UI",
+  "visual_aesthetic": {
+    "theme": "Futuristic Industrial Minimalism",
+    "color_palette": {
+      "background": "#FFFFFF",
+      "foreground": "#1A1A1A",
+      "primary": "#FF3C3C",
+      "secondary": "#CCCCCC",
+      "accents": ["#000000", "#E0E0E0", "#999999"]
+    },
+    "typography": {
+      "font_family": "Monospace / Terminal-style",
+      "case": "Uppercase & Title Case",
+      "effects": "None (Flat, crisp rendering)",
+      "color": "#1A1A1A"
+    },
+    "mood": "Clean, high-tech, utilitarian, synthetic"
+  },
+  "ui_design": {
+    "layout": {
+      "structure": "Modular",
+      "alignment": "Mostly center or justified block-based",
+      "elements_spacing": "Tight but balanced",
+      "component_shapes": "Geometric, sharp-edged, with futuristic bevels and cut-outs"
+    },
+    "components": [
+      {
+        "type": "HUD Panels",
+        "style": "Card-like compartments with micro-details",
+        "features": ["Beveled corners", "Interface slots", "Numbered IDs"]
+      },
+      {
+        "type": "Text Blocks",
+        "usage": "Lorem Ipsum placeholders with fixed-width container",
+        "layout": "Centered or justified, with borders"
+      },
+      {
+        "type": "Icons",
+        "design": "Minimalist glyphs (WiFi, audio, heart, menu)",
+        "style": "Flat, vector-style"
+      },
+      {
+        "type": "Warning Labels",
+        "style": "Bold red triangles or rectangles with exclamation icons",
+        "usage": "System alerts, errors, or data warnings"
+      },
+      {
+        "type": "Branding Tags",
+        "name": "BLACKBOXGRAFX",
+        "style": "Red with white text or inverse",
+        "positioning": "Bottom or corner-aligned"
+      },
+      {
+        "type": "Loading Indicators",
+        "style": "Progress bars with file counts and timers",
+        "positioning": "Top or center of modules"
+      }
+    ],
+    "interactions": {
+      "realism": "Static pseudo-interface (non-functional, decorative)",
+      "feedback": "Visual cues like progress bars, active recording lights, and memory indicators"
+    }
+  },
+  "special_elements": {
+    "tech_details": {
+      "data_lines": ["serial numbers", "technical tags", "memory sizes"],
+      "grid_system": "Consistent padding and fixed-width module containers",
+      "labels": "Internal Module, Powered by Imagination, Recording"
+    },
+    "stylistic_influences": [
+      "Sci-fi spacecraft UI",
+      "Mecha control panels",
+      "Synthetic cyber-deck aesthetics",
+      "Spacecraft black box or tactical UI readouts"
+    ],
+    "language_and_symbols": {
+      "typographic_glyphs": "█ ▌ ▓ ▒",
+      "foreign_scripts": ["Japanese warning text", "tech numerics"],
+      "visual_encoding": "Barcode-inspired spacing, microchip traces, and modular sockets"
+    }
+  },
+  "overall_impression": {
+    "usability_purpose": "Conceptual design system for sci-fi interfaces",
+    "intended_use": "Game UI mockups, concept art, visual identity for futuristic or space-related content",
+    "visual_rhythm": "Highly consistent across all frames, like part of a single OS"
+  }
+}
+{
+  "style_name": "Aviation HUD (Glass Cockpit Minimalism)",
+  "visual_aesthetic": {
+    "theme": "High-Altitude Flight Instrumentation",
+    "color_palette": {
+      "background": "#FAFAF8",
+      "foreground": "#000000",
+      "accents": [],
+      "contrast_level": "high"
+    },
+    "typography": {
+      "font_family": "Aerospace Monospace",
+      "weight": "Regular",
+      "case": "Uppercase",
+      "anti_aliasing": false
+    },
+    "line_style": {
+      "type": "Thin stroke",
+      "uniformity": "Consistent across all indicators",
+      "decorative_elements": "Minimal or none"
+    },
+    "mood": "Technical, sterile, utilitarian, mission-critical"
+  },
+  "ui_design": {
+    "type": "Flight Display (HUD)",
+    "layout": {
+      "grid": "Invisible grid with vertical and horizontal centering",
+      "sections": [
+        "Attitude Indicator (center)",
+        "Altitude Ladder (right)",
+        "Heading Indicator (bottom)",
+        "Flight Director & Navigation (top and corners)",
+        "Status & Data Readout (bottom-left)"
+      ]
+    },
+    "components": [
+      {
+        "type": "Attitude Indicator",
+        "style": "Symbolic horizon lines with artificial pitch markers",
+        "interaction": "Rotates and shifts based on pitch/roll"
+      },
+      {
+        "type": "Altitude Tape",
+        "position": "Right",
+        "format": "Vertical scrolling tape with numeric readouts",
+        "highlight": "Large central number for current altitude"
+      },
+      {
+        "type": "Heading Indicator",
+        "position": "Bottom center",
+        "style": "Compass rose style with arrow and degree marks"
+      },
+      {
+        "type": "Flight Director / Command Bars",
+        "visuals": "Simplified chevrons and arrows",
+        "feedback": "Align aircraft with visual cues"
+      },
+      {
+        "type": "Navigation & Status Readouts",
+        "labels": ["VOR/LOC", "G/S", "FD", "ALT", "VS", "TTG", "BHD", "TSPD"],
+        "style": "Minimal text with spacing separation"
+      }
+    ],
+    "iconography": {
+      "style": "Symbolic",
+      "language": "Aviation standard symbols",
+      "legibility": "High clarity with no decoration"
+    },
+    "interaction_model": {
+      "real-time_feedback": true,
+      "animation": "Dynamic movement of bars, numbers, and symbols as input changes",
+      "priority": "Immediate readability and situational awareness"
+    }
+  },
+  "usability_principles": {
+    "purpose": "Real-time aircraft navigation, monitoring and situational control",
+    "design_goals": [
+      "Zero-latency response",
+      "High information density",
+      "Absolute clarity under extreme conditions",
+      "No distraction or redundancy"
+    ],
+    "user_type": "Trained pilots or astronauts"
+  },
+  "style_influences": [
+    "Military aerospace UIs",
+    "Glass cockpit design systems (e.g., Boeing, Airbus)",
+    "NASA/ESA spacecraft interfaces"
+  ],
+  "overall_impression": {
+    "system_design": "Mission-critical instrumentation",
+    "aesthetic_function_ratio": "99% function / 1% form",
+    "ideal_use_case": "AR HUD overlays, aerospace simulations, sci-fi HUD references"
+  }
+}
+
+{
+  "style_name": "Data Minimalism / Environmental Dashboard",
+  "visual_aesthetic": {
+    "theme": "Clean Environmental Monitoring UI",
+    "color_palette": {
+      "background": "#EDEDED",
+      "foreground": "#1A1A1A",
+      "accent": "#000000",
+      "warning": "#D10000"
+    },
+    "typography": {
+      "font_family": "Sans-serif",
+      "weight": "Regular and Semi-Bold",
+      "size_hierarchy": {
+        "primary": "32–40px",
+        "secondary": "18–24px",
+        "tertiary": "12–16px"
+      },
+      "effects": "Flat, no shadows or gradients"
+    },
+    "iconography": {
+      "style": "Minimal vector icons",
+      "use": "Directional arrows, warning symbols, toggles"
+    },
+    "mood": "Clinical, precise, low-noise"
+  },
+  "ui_design": {
+    "layout": {
+      "structure": "Two-column grid with visual separation",
+      "alignment": "Left-aligned text blocks, right-aligned map/visuals",
+      "modularity": "Each content block acts as a stand-alone card",
+      "components": [
+        "Data Summary (top-left)",
+        "Alerts and Warnings (mid-left)",
+        "Comparisons (bottom-left)",
+        "Buoy and Tide Report (top-right)",
+        "Wind and Map Report (bottom-right)"
+      ]
+    },
+    "interactions": {
+      "scrolling": "Flat-card style with carousel navigation",
+      "feedback": "Simple states: loading, warning, percentage, comparison",
+      "interactivity": "Implied – toggle/cycle/compare"
+    }
+  },
+  "spacing_analysis": {
+    "padding": "Generous inner padding in all blocks (approx. 24–48px)",
+    "margins": "Ample spacing between each section (~64px min)",
+    "grid_spacing": "Consistent column width and baseline grid",
+    "negative_space": {
+      "use": "Deliberate white space to isolate key data blocks",
+      "effect": "Increases focus and reduces visual fatigue"
+    },
+    "line_height": "Tall (140%–160%) to support readability",
+    "issues": "None – spacing is balanced, rhythm is clean and intentional"
+  },
+  "usability": {
+    "clarity": "High — data hierarchies and visual weights are effective",
+    "navigation": "Simple, linear, assisted by labels and grouping",
+    "accessibility": "Could improve contrast slightly, but overall clean"
+  },
+  "style_influences": [
+    "Apple Human Interface Guidelines (Data Focused)",
+    "NASA Mission UI aesthetics",
+    "Swiss Graphic Design / Grid Systems",
+    "NOAA or Marine Data Visualizations"
+  ],
+  "overall_impression": {
+    "design_quality": "Polished and functional",
+    "ideal_use_case": "Real-time ocean monitoring, scientific dashboards, marine research tools",
+    "notes": "Excellent use of space to separate types of information while keeping user attention focused on severity and trends"
+  }
+}
+
+{
+  "style_name": "Tactical HUD / Cyber-Military OS",
+  "visual_aesthetic": {
+    "theme": "Futuristic Urban Navigation + Threat Intelligence Dashboard",
+    "color_palette": {
+      "background": "#0A0A0A",
+      "primary": "#FFFFFF",
+      "accent": "#B2FF00",
+      "secondary_accent": "#00FFFF",
+      "tertiary": "#CCCCCC",
+      "danger": "#FF2C2C"
+    },
+    "contrast": "High contrast (neon on black)",
+    "typography": {
+      "family": "Monospaced or Techno-Sans",
+      "weight": "Light to Medium",
+      "features": "All Caps, Tight Tracking, No Anti-aliasing",
+      "readability": "Optimized for speed, not comfort"
+    },
+    "mood": "Surveillance-grade, high-tension, synthetic, technical"
+  },
+  "ui_design": {
+    "type": "Futuristic Mission Control / Combat Navigation",
+    "grid_system": {
+      "columns": 24,
+      "visible_lines": true,
+      "division": "Pixel-perfect alignment with modular overlays"
+    },
+    "layout": {
+      "structure": "Multizonal with floating data panels and overlays",
+      "alignment": "Grid + radial targeting centering",
+      "visual_density": "High — lots of data per screen real estate",
+      "spacing": "Tight inner padding, zero margin between groups"
+    },
+    "components": [
+      {
+        "type": "Map Overlay",
+        "function": "Tactical positioning and geospatial data",
+        "style": "Transparent satellite map with vector overlays"
+      },
+      {
+        "type": "Radial Gauges",
+        "purpose": "Sensor readouts, wave energy, health/stats",
+        "interaction": "Likely dynamic in real interface"
+      },
+      {
+        "type": "HUD Annotations",
+        "style": "Label-style with boxes or lines",
+        "positioning": "Anchored to coordinates or objects"
+      },
+      {
+        "type": "Bar Graphs & BPM Counters",
+        "visuals": "Linear, pixelated, system-style meters",
+        "use_case": "Signal strength, audio frequencies, status bars"
+      },
+      {
+        "type": "Signal Matching & Target Codes",
+        "interaction": "Feedback to operator — real-time matching"
+      },
+      {
+        "type": "Text Blocks",
+        "format": "Blocky, segmented, short words",
+        "language_style": "Abbreviated military code"
+      }
+    ],
+    "iconography": {
+      "style": "Vector micro-icons, no embellishment",
+      "types": ["arrows", "circles", "core targets", "nodes"],
+      "color_usage": "Only for priority (green, red, yellow)"
+    }
+  },
+  "interaction_model": {
+    "user_intent": "Constant real-time monitoring and reaction",
+    "latency_requirement": "Ultra-low — mission-critical",
+    "navigation": "Eyes-forward, minimal cognitive redirection",
+    "feedback": "Visual blinking, bar shift, numerical tick updates",
+    "usability_target": "Advanced / Expert / Combat personnel"
+  },
+  "motion_and_dynamics": {
+    "implied_animation": [
+      "Waveform graphs pulsing",
+      "Dials rotating",
+      "Map panning or zooming",
+      "Numbers updating per second",
+      "Radar-like sweeps"
+    ],
+    "visual_priority": "Kinetic hierarchy — most active areas draw attention first"
+  },
+  "style_influences": [
+    "Ghost in the Shell interfaces",
+    "EVA cockpit UI (Evangelion)",
+    "Call of Duty: Warzone Tactical Maps",
+    "DARPA Command Line Prototypes",
+    "Cyberpunk 2077 scanner overlay"
+  ],
+  "usability_review": {
+    "efficiency": "Very high for trained operators",
+    "learnability": "Steep learning curve due to coding/abbreviated language",
+    "accessibility": "Poor for general users — built for speed over clarity",
+    "legibility": "Excellent at scale, less effective on small screens"
+  },
+  "design_goals": {
+    "immersion": true,
+    "intensity": true,
+    "data_saturation": true,
+    "narrative_worldbuilding": true,
+    "real-world influence": "Simulation-grade interface realism"
+  },
+  "summary": {
+    "system_type": "Dystopian Command HUD",
+    "purpose": "Multi-input situational awareness dashboard (position, energy, threat)",
+    "ideal_use": "Games, AR HUDs, Sci-Fi films, AI drone control panels"
+  }
+}
+
+{
+  "style_name": "Monochrome Sci-Fi Terminal UI",
+  "visual_aesthetic": {
+    "theme": "Retro-Futuristic Security Console",
+    "color_palette": {
+      "background": "#FFFFFF",
+      "foreground": "#000000",
+      "accent": "#8000FF (limited to small UI marks)",
+      "style": "Strict black and white with sharp lines, high contrast"
+    },
+    "typography": {
+      "primary_font": "Pixel or Modular Sans",
+      "weight": "Bold, All Caps",
+      "spacing": "Condensed",
+      "hierarchy": {
+        "title": "Large stylized slab text (e.g., SYSTEMATIC ERROR)",
+        "labels": "Small, uppercase terminal text"
+      }
+    },
+    "mood": "Industrial, locked-down, artificial — evokes system failure or emergency mode"
+  },
+  "ui_design": {
+    "layout": {
+      "structure": "Fixed-frame panel system with dense compartmentalization",
+      "alignment": "Pixel-perfect modular grid",
+      "section_types": [
+        "Login credentials zone (top bar)",
+        "Surveillance feed / targeting circle (center)",
+        "Warnings and system status (left column)",
+        "Status and utility buttons (right-bottom)",
+        "Main terminal message (bottom center — SYSTEMATIC ERROR)"
+      ]
+    },
+    "components": [
+      {
+        "type": "Targeting Reticle",
+        "position": "Center and upper-left",
+        "style": "Concentric rings with crosshairs",
+        "interaction": "Static in design, implies tracking or access control"
+      },
+      {
+        "type": "Credential Panel",
+        "elements": ["Username", "Password", "Status Indicator"],
+        "location": "Top border"
+      },
+      {
+        "type": "Emergency Warning",
+        "style": "Bold label: DANGER, with instruction set below",
+        "graphic_language": "Black bars, exclamation mark, high alert aesthetic"
+      },
+      {
+        "type": "System Message Zone",
+        "message": "SYSTEMATIC ERROR",
+        "style": "Large title block, stylized text with stretched baseline"
+      },
+      {
+        "type": "Status Widgets",
+        "icons": ["Home", "Tool/Wrench", "Triangle Alert"],
+        "position": "Bottom right"
+      }
+    ],
+    "iconography": {
+      "style": "Mechanical glyphs / engineer-grade pictograms",
+      "rendering": "Line-based, abstract, high density"
+    },
+    "data_feedback": {
+      "visuals_only": true,
+      "no_animation": "This appears to be a frozen or 'error state' screen",
+      "interaction_implied": "Inactive system, or waiting for user clearance"
+    }
+  },
+  "interaction_model": {
+    "purpose": "Terminal UI, intended for command-line access or diagnostic viewing",
+    "status": "Locked or Error",
+    "navigation": "Nonlinear panel focus; operator reads by quadrant zones",
+    "contextual_behavior": "Not touch-based; designed for mechanical or keyboard interface"
+  },
+  "stylistic_influences": [
+    "90s anime mecha interfaces (e.g., NERV HQ from Evangelion)",
+    "Early NASA or DOS terminal UIs",
+    "Art deco + industrial brutalism mix (lettering + rigid framing)",
+    "Military access control systems"
+  ],
+  "visual_culture_notes": {
+    "aesthetic_signature": "Mix of fictional OS, brutalist typography, and sci-fi worldbuilding",
+    "media_fit": "Perfect for music visuals, print posters, game terminal screens, cybernetic infographics",
+    "cultural vibe": "Isolation, lockdown, or intrusion scenario"
+  },
+  "summary": {
+    "tone": "System override or critical failure",
+    "design_goals": "Maximum clarity, fictional immersion, retro-future believability",
+    "ideal_use_case": "Sci-fi music cover, worldbuilding OS interface, concept UI for comics or film"
+  }
+}{
+  "combined_style_name": "Synthetic Tactical Futurism",
+  "core_aesthetic": {
+    "vibe": [
+      "High-stakes systems",
+      "Mission-critical intelligence",
+      "Synthetic control environments",
+      "Retro-futuristic machine logic"
+    ],
+    "atmosphere": [
+      "Dark surveillance",
+      "Deterministic cybernetic precision",
+      "Sterile dystopian utility",
+      "Locked-down security terminals",
+      "Detached post-human interface"
+    ],
+    "mood": "Tense, clinical, mysterious, heavily automated"
+  },
+  "visual_language": {
+    "color_strategies": {
+      "primary_modes": [
+        "Neon-on-black (military/tactical HUDs)",
+        "Monochrome black-and-white (terminal or system alert UIs)",
+        "Sterile greyscale (environmental dashboards)"
+      ],
+      "accent_colors": ["Acid green", "Alert red", "Glitch purple", "Arctic blue"],
+      "contrast_philosophy": "High contrast for function-first legibility; minimal gradient or noise"
+    },
+    "typographic_signature": {
+      "font_families": ["Monospaced", "Techno-sans", "Pixel slabs"],
+      "traits": [
+        "All caps",
+        "Wide tracking",
+        "Mechanical or serialized style"
+      ],
+      "hierarchy": "Emphasizes data flow and warnings over aesthetics"
+    },
+    "shapes_and_geometry": {
+      "dominant_motifs": [
+        "Hard-edged boxes",
+        "Concentric targeting reticles",
+        "Circuit-line dividers",
+        "Radial gauges and crosshair symmetry"
+      ],
+      "layout": "Grid-based modular zones or layered overlays",
+      "symbol_system": "Engineered glyphs, industrial icons, warning pictograms"
+    }
+  },
+  "interaction_ethos": {
+    "interactivity": "Implied rather than actual — interfaces look like they run themselves or require clearance",
+    "user_role": [
+      "Observer",
+      "Operator",
+      "Hacker",
+      "Pilot",
+      "Data analyst in post-human scenario"
+    ],
+    "feedback": [
+      "Real-time bars, waveforms, radar sweeps",
+      "Blipping nodes, targeting animations (implied)",
+      "Flashing warnings or error panels"
+    ],
+    "narrative_implication": "You are not in control — you are part of the system"
+  },
+  "cultural_and_design_influences": {
+    "fictional_sources": [
+      "Evangelion's NERV interfaces",
+      "Ghost in the Shell cybercrime OS",
+      "Blade Runner 2049 tactical overlays",
+      "Alien ship terminals",
+      "Deus Ex and Cyberpunk 2077 HUDs"
+    ],
+    "real-world analogs": [
+      "Fighter jet HUDs",
+      "NASA systems UI",
+      "Industrial control SCADA panels",
+      "Military command dashboards"
+    ],
+    "typographic_inspiration": [
+      "Brutalist digital posters",
+      "Data-driven editorial layouts",
+      "Techwear fashion branding"
+    ]
+  },
+  "combined_usage": {
+    "ideal_applications": [
+      "Sci-fi films and animations",
+      "Music visuals and posters",
+      "Tactical simulation dashboards",
+      "AR HUDs or drone control",
+      "Cybersecurity fiction, hacking interfaces",
+      "AI persona overlays"
+    ],
+    "tone_of_voice": [
+      "Detached",
+      "Minimal",
+      "Functional-first",
+      "Occasionally glitchy or corrupted"
+    ]
+  },
+  "summary": {
+    "aesthetic_essence": "Neo-industrial control meets stylized post-human OS",
+    "signature_trait": "Every pixel implies purpose — even in error",
+    "emotional_response": "Cold awe, operational focus, and narrative tension"
+  }
+}{
+  "combined_style_name": "Synthetic Tactical Futurism",
+  "visual_style": {
+    "color_palette": {
+      "primary": ["#000000", "#FFFFFF", "#1A1A1A", "#00FF66"],
+      "accents": ["#33FF99", "#00CCFF", "#CCCCCC", "#FF3C3C", "#B2FF00", "#00FFFF", "#8000FF"],
+      "backgrounds": ["#0A0A0A", "#FFFFFF", "#FAFAF8", "#EDEDED"]
+    },
+    "typography": {
+      "font_family": ["Monospaced", "Techno-sans", "Pixel slabs", "Aerospace Monospace", "Sans-serif"],
+      "weight": ["Regular", "Semi-Bold", "Medium", "Light"],
+      "size_hierarchy": {
+        "primary": "32–40px",
+        "secondary": "18–24px",
+        "tertiary": "12–16px"
+      },
+      "case": "Uppercase and Title Case",
+      "tracking": "Wide and Tight (context-dependent)",
+      "anti_aliasing": false,
+      "effects": ["Flat crisp rendering", "Neon glow effect (optional)", "Condensed spacing"]
+    },
+    "shape_geometry": {
+      "dominant_motifs": [
+        "Geometric sharp-edged boxes with futuristic bevels and cut-outs",
+        "Radial gauges and concentric reticles",
+        "Thin, straight circuit-line dividers",
+        "Smooth synthetic plastic/metal surfaces",
+        "Hard-edged compartmentalization"
+      ],
+      "line_style": "Thin stroke, consistent thickness, minimal decoration"
+    },
+    "layout": {
+      "grid_system": {
+        "structure": ["Modular zones", "Layered overlays", "Two-column grid", "Invisible alignment grid"],
+        "alignment": "Center-focused, justified, or symmetrical alignment",
+        "grid_columns": 24,
+        "spacing": {
+          "inner_padding": "Tight (8-16px) with deliberate compartmentalization",
+          "element_spacing": "Compressed but balanced",
+          "margin_between_sections": "Moderate (32-64px)"
+        },
+        "negative_space": "Strategic, isolates and emphasizes key data groups"
+      },
+      "element_alignment": "Pixel-perfect with clear vertical/horizontal centering"
+    },
+    "iconography": {
+      "style": ["Minimal vector", "Mechanical glyphs", "Flat, sharp-edged", "Symbolic aviation-standard symbols"],
+      "types": ["Directional arrows", "Warning symbols", "Technical icons", "Low-fi tech-oriented icons"],
+      "legibility": "High clarity, minimal decoration"
+    },
+    "interaction_elements": {
+      "feedback": ["Real-time numeric/bar updates", "Flashing warnings", "Visual blinking indicators", "Progress bars", "Active recording lights"],
+      "animation_implied": ["Waveforms pulsing", "Scrolling data streams", "Radial gauge rotation", "Dynamic numeric updates", "Radar-like sweeps"]
+    },
+    "depth_and_texture": {
+      "depth": "Flat 2D layers with faux 3D depth via lighting and gradients",
+      "texture": "Smooth, synthetic, plastic/metal, futuristic industrial surfaces"
+    },
+    "lighting": "Glow, neon-lit with strong contrasts, primarily neon-on-black"
+  },
+  "overall_design_goals": {
+    "spacing_and_density": "High information density balanced by strategic spacing and compartmentalization",
+    "contrast": "High, ensuring readability, immediate visual hierarchy, minimal gradients",
+    "use_of_space": "Functional-first, minimal decorative elements, optimized user attention",
+    "padding_and_margins": "Consistent, deliberate padding (tight to moderate), clear delineation of sections"
+  },
+  "special_elements": {
+    "tech_details": {
+      "data_lines": ["serial numbers", "technical tags", "memory sizes"],
+      "labels": ["Internal Module", "Powered by Imagination", "Recording"]
+    },
+    "visual_encoding": "Barcode-inspired spacing, microchip traces, modular sockets",
+    "language_and_symbols": {
+      "typographic_glyphs": "█ ▌ ▓ ▒",
+      "foreign_scripts": ["Japanese warning text", "tech numerics"]
+    }
+  },
+  "usability_principles": {
+    "clarity_and_legibility": "High clarity, minimal noise, absolute readability under extreme conditions",
+    "real_time_feedback": "Immediate, with zero-latency visual responses",
+    "accessibility": "Optimized for trained expert users, potentially challenging for novices",
+    "visual_priority": "Kinetic hierarchy—dynamic areas and warnings draw immediate attention"
+  },
+  "combined_usage": {
+    "ideal_applications": [
+      "Sci-fi films and animations",
+      "Music visuals and posters",
+      "Tactical simulation dashboards",
+      "AR HUDs or drone control",
+      "Cybersecurity fiction, hacking interfaces",
+      "AI persona overlays",
+      "Real-time aerospace navigation interfaces",
+      "Scientific and environmental monitoring dashboards"
+    ],
+    "tone_of_voice": [
+      "Detached",
+      "Minimal",
+      "Functional-first",
+      "Occasionally glitchy or corrupted"
+    ]
+  }
+}
