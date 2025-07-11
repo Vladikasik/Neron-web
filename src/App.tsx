@@ -9,6 +9,7 @@ import { createMCPClient } from './lib/mcpIntegration';
 import { graphCache, CACHE_KEYS } from './lib/graphCache';
 import { transformMCPToGraphData } from './lib/dataTransformer';
 import type { GraphData, GraphNode, GraphLink, NodeSelection } from './types/graph';
+import { useAuth } from './hooks/useAuth';
 import './index.css';
 
 interface AppState {
@@ -24,6 +25,10 @@ interface AppState {
 }
 
 function App() {
+  const { user, signOut } = useAuth();
+  
+  console.log('🔧 [AUTH] App rendering for user:', user?.email);
+  
   // Simple sample data for testing
   const initialData: GraphData = {
     nodes: [
@@ -438,6 +443,17 @@ function App() {
             /
           </button>
         )}
+
+        {/* Logout Button - Top Right Corner */}
+        <div className="absolute top-4 right-4 pointer-events-auto">
+          <button
+            onClick={signOut}
+            className="tactical-button px-4 py-2 tactical-text-xs bg-red-900/30 border border-red-500/50 hover:bg-red-900/50 transition-colors"
+            title="Sign Out"
+          >
+            LOGOUT [{user?.email?.split('@')[0]?.toUpperCase()}]
+          </button>
+        </div>
 
         {/* Keyboard Shortcuts - Bottom Right Corner */}
         <div className="keyboard-shortcuts pointer-events-none tactical-text tactical-text-dim tactical-text-xs opacity-60">

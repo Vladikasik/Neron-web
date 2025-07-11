@@ -1,10 +1,14 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import App from './App.tsx'
+import { AuthenticatedApp } from './components/AuthenticatedApp'
+
+console.log('🚀 [MAIN] Starting NERON application...');
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AuthenticatedApp />
   </StrictMode>,
 )
+
+console.log('✅ [MAIN] NERON application initialized');
