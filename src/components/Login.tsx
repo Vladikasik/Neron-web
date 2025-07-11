@@ -152,7 +152,7 @@ export const Login: React.FC = () => {
                     ? 'CONNECTING WALLET...' 
                     : connected 
                       ? `SOLANA WALLET (${publicKey?.toString().slice(0, 4)}...${publicKey?.toString().slice(-4)})`
-                      : 'SOLANA WEB3 ACCESS'
+                      : 'SOLANA WEB3 ACCESS (BETA)'
                   }
                 </span>
               </div>
@@ -171,6 +171,28 @@ export const Login: React.FC = () => {
               </p>
             </div>
           )}
+
+          {/* Beta Notice for Solana */}
+          <div className="mt-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded">
+            <div className="flex items-center gap-2 text-blue-400">
+              <span className="text-sm">ℹ️</span>
+              <span className="text-xs font-medium">AUTHENTICATION STATUS</span>
+            </div>
+            <div className="text-xs mt-2 tactical-text-dim space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-green-400">✅</span>
+                <span>GitHub OAuth - Fully Working</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-yellow-400">⚠️</span>
+                <span>Twitter OAuth - In Progress</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-blue-400">🔄</span>
+                <span>Solana Web3 - Beta (Backend Setup Required)</span>
+              </div>
+            </div>
+          </div>
 
           {/* Footer */}
           <div className="mt-8 text-center">

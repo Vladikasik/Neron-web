@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Login } from './Login';
 import { AuthCallback } from './AuthCallback';
@@ -9,8 +9,28 @@ export const AppRouter: React.FC = () => {
 
   console.log('🔧 [AUTH] AppRouter rendering with auth state:', {
     user: user?.email || 'None',
-    loading
+    loading,
+    currentPath: window.location.pathname,
+    currentHash: window.location.hash
   });
+
+  // Handle redirect after successful authentication
+  useEffect(() => {
+    if (user && !loading) {
+      const currentPath = window.location.pathname;
+      const currentHash = window.location.hash;
+      
+      // If user is authenticated and on callback page, redirect to main app
+      if (currentPath === '/auth/callback' || currentHash.startsWith('#access_token=')) {
+        console.log('✅ [AUTH] User authenticated on callback page, redirecting to main app...');
+        
+        // Clear the URL hash and redirect to main app
+        window.history.replaceState({}, document.title, window.location.pathname);
+        window.location.href = '/';
+        return;
+      }
+    }
+  }, [user, loading]);
 
   // Check if we're on the auth callback route
   const isAuthCallback = window.location.pathname === '/auth/callback';
@@ -21,34 +41,34 @@ export const AppRouter: React.FC = () => {
       <div className="tactical-bg w-full h-screen flex items-center justify-center">
         <div className="tactical-window max-w-md w-full mx-4">
           <div className="p-8 text-center">
-            <div className="tactical-spinner w-12 h-12 mx-auto mb-4">
-              <div className="w-full h-full border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-            <h2 className="tactical-text text-xl font-bold mb-2">
-              INITIALIZING NERON INTERFACE
-            </h2>
-            <p className="tactical-text-dim text-sm">
-              Checking authentication status...
-            </p>
+            <div className="animate-spin w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <div className="tactical-text text-lg font-medium mb-2">NERON</div>
+            <div className="tactical-text-dim text-sm">INITIALIZING AUTHENTICATION...</div>
           </div>
         </div>
       </div>
     );
   }
 
-  // Handle auth callback route
+  // If user is authenticated, show main app (unless processing callback)
+  if (user) {
+    // Only show callback component if we're actually processing a callback
+    if (isAuthCallback && window.location.hash.startsWith('#access_token=')) {
+      console.log('🔐 [AUTH] Processing OAuth callback...');
+      return <AuthCallback />;
+    }
+    
+    console.log('🔐 [AUTH] User authenticated, showing main app');
+    return <App />;
+  }
+
+  // If on callback page but no user, show callback component
   if (isAuthCallback) {
-    console.log('🔐 [AUTH] Rendering auth callback component');
+    console.log('🔐 [AUTH] On callback page, processing authentication...');
     return <AuthCallback />;
   }
 
-  // If user is not authenticated, show login
-  if (!user) {
-    console.log('🔐 [AUTH] User not authenticated, showing login');
-    return <Login />;
-  }
-
-  // User is authenticated, show main app
-  console.log('✅ [AUTH] User authenticated, showing main app');
-  return <App />;
+  // Show login screen
+  console.log('🔐 [AUTH] User not authenticated, showing login');
+  return <Login />;
 }; 

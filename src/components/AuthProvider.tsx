@@ -103,24 +103,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const redirectTo = `${window.location.origin}/auth/callback`;
       console.log(`🔐 [AUTH] Redirect URL: ${redirectTo}`);
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
+      // Special handling for Twitter OAuth issues
+      if (provider === 'twitter') {
+        console.log('🐦 [AUTH] Twitter OAuth - checking configuration...');
+        
+        // Add Twitter-specific options
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'twitter',
+          options: {
+            redirectTo,
+            queryParams: {
+              access_type: 'offline',
+            },
           },
-        },
-      });
+        });
 
-      if (error) {
-        console.error(`❌ [AUTH] OAuth error for ${provider}:`, error);
-        setError(error.message);
-        throw error;
+        if (error) {
+          console.error('❌ [AUTH] Twitter OAuth error:', error);
+          
+          // Provide more specific error message for Twitter
+          if (error.message.includes('invalid') || error.message.includes('not configured')) {
+            setError('Twitter OAuth is not properly configured. Please try GitHub login instead.');
+          } else {
+            setError(`Twitter OAuth failed: ${error.message}`);
+          }
+          throw error;
+        }
+
+        console.log('✅ [AUTH] Twitter OAuth initiated:', data);
+      } else {
+        // GitHub OAuth
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            },
+          },
+        });
+
+        if (error) {
+          console.error(`❌ [AUTH] OAuth error for ${provider}:`, error);
+          setError(error.message);
+          throw error;
+        }
+
+        console.log(`✅ [AUTH] OAuth initiated for ${provider}:`, data);
       }
-
-      console.log(`✅ [AUTH] OAuth initiated for ${provider}:`, data);
       
       // The actual sign-in will be handled by the callback
       // Don't set loading to false here, let the auth state change handle it
@@ -140,11 +171,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Check if wallet is connected
       if (!connected || !publicKey) {
         console.log('🔗 [AUTH] Wallet not connected, attempting to connect...');
-        await connect();
         
-        // Wait for connection
-        if (!publicKey) {
-          throw new Error('Failed to connect wallet');
+        try {
+          await connect();
+          
+          // Wait a moment for connection to establish
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          if (!publicKey) {
+            throw new Error('Failed to connect wallet - no public key received');
+          }
+        } catch (connectError) {
+          console.error('❌ [AUTH] Wallet connection failed:', connectError);
+          throw new Error('Please connect your wallet first. Make sure you have a Solana wallet extension installed (Phantom, Solflare, etc.).');
         }
       }
 
@@ -164,26 +203,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const signature = await signMessage(messageBytes);
       console.log('✅ [AUTH] Message signed successfully');
 
-      // Verify signature with Supabase Web3 Auth
-      console.log('🔐 [AUTH] Verifying signature with Supabase...');
+      // For now, create a simple Web3 session since Supabase Web3 auth might not be enabled
+      console.log('🔐 [AUTH] Creating Web3 session...');
       
-      // Use Supabase's Web3 authentication
-      const { data, error } = await supabase.auth.signInWithIdToken({
+      // Create a custom session for Web3 authentication
+      // This is a simplified approach - in production you'd want proper Web3 auth
+      const webAuthData = {
         provider: 'web3',
-        token: JSON.stringify({
-          message: message,
-          signature: Array.from(signature),
-          publicKey: publicKey.toString(),
-          chain: 'solana'
-        }),
-      });
-
-      if (error) {
-        console.error('❌ [AUTH] Supabase Web3 auth error:', error);
-        throw error;
-      }
-
-      console.log('✅ [AUTH] Solana Web3 authentication successful:', data);
+        wallet_address: publicKey.toString(),
+        signature: Array.from(signature),
+        message: message,
+        timestamp: Date.now()
+      };
+      
+      // For now, we'll use a mock session approach
+      // In a real implementation, you'd send this to your backend for verification
+      console.log('🌟 [AUTH] Web3 authentication data prepared:', webAuthData);
+      
+      // Since Supabase Web3 auth might not be configured, we'll show an error for now
+      throw new Error('Solana Web3 authentication requires additional backend setup. Please use GitHub or Twitter login for now.');
       
     } catch (err) {
       console.error('❌ [AUTH] Exception during Solana authentication:', err);
@@ -192,7 +230,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Disconnect wallet on error
       if (connected) {
-        await disconnect();
+        try {
+          await disconnect();
+        } catch (disconnectError) {
+          console.error('❌ [AUTH] Error disconnecting wallet:', disconnectError);
+        }
       }
     }
   };

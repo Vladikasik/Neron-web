@@ -452,7 +452,9 @@ function App() {
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               <div className="text-xs">
                 <div className="tactical-text-xs font-medium text-green-400">
-                  {user?.user_metadata?.provider?.toUpperCase() || 'WEB3'} SESSION ACTIVE
+                  {user?.app_metadata?.provider?.toUpperCase() || 
+                   user?.user_metadata?.provider?.toUpperCase() || 
+                   (user?.email ? 'OAUTH' : 'WEB3')} SESSION ACTIVE
                 </div>
                 <div className="tactical-text-dim text-xs">
                   {user?.email 

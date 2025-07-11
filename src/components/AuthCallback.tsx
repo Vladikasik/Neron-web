@@ -1,12 +1,38 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 
 export const AuthCallback: React.FC = () => {
+  const { user, loading } = useAuth();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [message, setMessage] = useState('Processing authentication...');
 
   useEffect(() => {
     const handleAuthCallback = async () => {
+      console.log('🔐 [AUTH] AuthCallback component mounted');
+      console.log('🔐 [AUTH] Current auth state:', { user: user?.email || 'None', loading });
+      
+      // If user is already authenticated, redirect immediately
+      if (user && !loading) {
+        console.log('✅ [AUTH] User already authenticated, redirecting to main app...');
+        setStatus('success');
+        setMessage('Authentication successful! Redirecting...');
+        
+        // Clear URL hash and redirect
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1500);
+        return;
+      }
+
+      // If still loading, wait
+      if (loading) {
+        console.log('🔐 [AUTH] Still loading, waiting...');
+        setMessage('Verifying authentication...');
+        return;
+      }
+
+      // If no user and not loading, check for OAuth callback data
       console.log('🔐 [AUTH] Processing OAuth callback...');
       
       try {
@@ -19,18 +45,23 @@ export const AuthCallback: React.FC = () => {
         const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
         
         if (error) {
-          console.error('❌ [AUTH] OAuth callback error:', error, errorDescription);
+          console.error('❌ [AUTH] OAuth error:', error, errorDescription);
           setStatus('error');
           setMessage(`Authentication failed: ${errorDescription || error}`);
+          
+          // Redirect to login after delay
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 3000);
           return;
         }
 
-        // Check for access token and other auth data
+        // Check for access token in hash
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         const expiresIn = hashParams.get('expires_in');
         const tokenType = hashParams.get('token_type');
-        
+
         console.log('🔐 [AUTH] OAuth callback data:', {
           accessToken: accessToken ? 'Present' : 'Missing',
           refreshToken: refreshToken ? 'Present' : 'Missing',
@@ -39,73 +70,66 @@ export const AuthCallback: React.FC = () => {
         });
 
         if (accessToken) {
-          // Set the session with the tokens
-          console.log('🔐 [AUTH] Setting session with OAuth tokens...');
-          setMessage('Authenticating with OAuth tokens...');
-          
-          const { data, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || ''
-          });
-
-          if (sessionError) {
-            console.error('❌ [AUTH] Session creation error:', sessionError);
-            throw sessionError;
-          }
-
-          console.log('✅ [AUTH] Session created successfully:', data);
+          console.log('✅ [AUTH] Access token found, authentication should be handled by Supabase...');
           setStatus('success');
           setMessage('Authentication successful! Redirecting...');
           
-          // Redirect to main app after a short delay
+          // Supabase should handle the session creation automatically
+          // Just wait a bit for the auth state to update
           setTimeout(() => {
-            window.location.href = '/';
-          }, 1500);
-        } else {
-          // If no access token, check if we have a code parameter for OAuth flow
-          console.log('🔐 [AUTH] No access token found, checking for OAuth code...');
-          setMessage('Processing OAuth callback...');
-          
-          const code = urlParams.get('code');
-          
-          if (code) {
-            console.log('🔐 [AUTH] Found OAuth code, exchanging for session...');
-            const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-            
-            if (exchangeError) {
-              console.error('❌ [AUTH] Code exchange error:', exchangeError);
-              throw exchangeError;
-            }
-
-            if (data.session) {
-              console.log('✅ [AUTH] Session created from code exchange:', data.session);
-              setStatus('success');
-              setMessage('Authentication successful! Redirecting...');
-              
-              // Redirect to main app after a short delay
-              setTimeout(() => {
-                window.location.href = '/';
-              }, 1500);
+            if (user) {
+              window.location.href = '/';
             } else {
-              console.error('❌ [AUTH] No session data received from code exchange');
+              // If user is still not set, something went wrong
               setStatus('error');
-              setMessage('Authentication failed: No session data received');
+              setMessage('Authentication processing failed. Please try again.');
             }
+          }, 2000);
+        } else {
+          console.log('🔐 [AUTH] No access token found, checking for OAuth code...');
+          
+          // Check for OAuth code (some providers use this)
+          const code = urlParams.get('code');
+          if (code) {
+            console.log('🔐 [AUTH] OAuth code found, should be handled by Supabase...');
+            setMessage('Processing OAuth code...');
+            
+            // Wait for Supabase to process the code
+            setTimeout(() => {
+              if (user) {
+                setStatus('success');
+                setMessage('Authentication successful! Redirecting...');
+                window.location.href = '/';
+              } else {
+                setStatus('error');
+                setMessage('Authentication processing failed. Please try again.');
+              }
+            }, 3000);
           } else {
             console.error('❌ [AUTH] No authentication data found in callback');
             setStatus('error');
-            setMessage('Authentication failed: No authentication data found');
+            setMessage('No authentication data found. Please try again.');
+            
+            // Redirect to login after delay
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 3000);
           }
         }
       } catch (err) {
         console.error('❌ [AUTH] Exception during callback processing:', err);
         setStatus('error');
-        setMessage(`Authentication failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        setMessage('Authentication failed. Please try again.');
+        
+        // Redirect to login after delay
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
       }
     };
 
     handleAuthCallback();
-  }, []);
+  }, [user, loading]);
 
   return (
     <div className="tactical-bg w-full h-screen flex items-center justify-center">
@@ -114,56 +138,60 @@ export const AuthCallback: React.FC = () => {
           {/* Status Icon */}
           <div className="mb-6">
             {status === 'processing' && (
-              <div className="tactical-spinner w-12 h-12 mx-auto mb-4">
-                <div className="w-full h-full border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-              </div>
+              <div className="animate-spin w-12 h-12 border-2 border-green-500 border-t-transparent rounded-full mx-auto"></div>
             )}
             {status === 'success' && (
-              <div className="w-12 h-12 mx-auto mb-4 bg-green-500 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+              <div className="w-12 h-12 bg-green-500 rounded-full mx-auto flex items-center justify-center">
+                <span className="text-white text-xl">✓</span>
               </div>
             )}
             {status === 'error' && (
-              <div className="w-12 h-12 mx-auto mb-4 bg-red-500 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <div className="w-12 h-12 bg-red-500 rounded-full mx-auto flex items-center justify-center">
+                <span className="text-white text-xl">✗</span>
               </div>
             )}
           </div>
 
-          {/* Status Message */}
-          <h2 className="tactical-text text-xl font-bold mb-2">
-            {status === 'processing' && 'PROCESSING AUTHENTICATION'}
-            {status === 'success' && 'AUTHENTICATION SUCCESSFUL'}
-            {status === 'error' && 'AUTHENTICATION FAILED'}
-          </h2>
-          
-          <p className="tactical-text-dim text-sm mb-6">
-            {message}
-          </p>
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="tactical-text text-2xl font-bold mb-2">
+              {status === 'processing' && 'AUTHENTICATING'}
+              {status === 'success' && 'AUTHENTICATED'}
+              {status === 'error' && 'AUTHENTICATION FAILED'}
+            </h1>
+            <div className="h-px bg-gradient-to-r from-transparent via-green-500 to-transparent opacity-50" />
+          </div>
 
-          {/* Actions */}
-          {status === 'error' && (
-            <div className="space-y-3">
-              <button
-                onClick={() => window.location.href = '/'}
-                className="tactical-button px-6 py-2 tactical-text-xs"
-              >
-                RETURN TO LOGIN
-              </button>
-              <p className="tactical-text-dim text-xs">
-                If this problem persists, check console for details
-              </p>
+          {/* Message */}
+          <div className="mb-6">
+            <p className="tactical-text-dim text-sm">{message}</p>
+          </div>
+
+          {/* Progress or Actions */}
+          {status === 'processing' && (
+            <div className="tactical-text-dim text-xs">
+              Please wait while we complete your authentication...
             </div>
           )}
           
-          {status === 'processing' && (
-            <p className="tactical-text-dim text-xs">
-              Please wait while we verify your credentials...
-            </p>
+          {status === 'success' && (
+            <div className="tactical-text-dim text-xs">
+              Redirecting to NERON interface...
+            </div>
+          )}
+          
+          {status === 'error' && (
+            <div className="space-y-2">
+              <div className="tactical-text-dim text-xs">
+                You will be redirected to the login page shortly.
+              </div>
+              <button
+                onClick={() => window.location.href = '/'}
+                className="tactical-button px-4 py-2 tactical-text-xs"
+              >
+                RETURN TO LOGIN
+              </button>
+            </div>
           )}
         </div>
       </div>
