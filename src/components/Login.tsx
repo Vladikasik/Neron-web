@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 export const Login: React.FC = () => {
   const { signInWithOAuth, signInWithSolana, loading, error, clearError } = useAuth();
-  const { connected, publicKey } = useWallet();
+  const { connected, publicKey, disconnect } = useWallet();
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
 
   console.log('🔧 [AUTH] Login component rendered');
@@ -14,6 +15,14 @@ export const Login: React.FC = () => {
     // Clear any existing errors when component mounts
     clearError();
   }, [clearError]);
+
+  // Handle Solana wallet connection change
+  useEffect(() => {
+    if (connected && publicKey) {
+      console.log('🌟 [AUTH] Wallet connected, attempting Solana authentication...');
+      handleSolanaLogin();
+    }
+  }, [connected, publicKey]);
 
   const handleProviderLogin = async (provider: 'github' | 'twitter') => {
     console.log(`🔐 [AUTH] User selected ${provider.toUpperCase()} login`);
@@ -28,7 +37,12 @@ export const Login: React.FC = () => {
   };
 
   const handleSolanaLogin = async () => {
-    console.log('🌟 [AUTH] User selected SOLANA login');
+    if (!connected || !publicKey) {
+      console.log('🌟 [AUTH] Wallet not connected, user needs to select wallet first');
+      return;
+    }
+
+    console.log('🌟 [AUTH] Wallet connected, proceeding with authentication...');
     setSelectedProvider('solana');
     
     try {
@@ -36,6 +50,22 @@ export const Login: React.FC = () => {
     } catch (err) {
       console.error('❌ [AUTH] Solana login failed:', err);
       setSelectedProvider(null);
+      
+      // Disconnect wallet on error
+      if (connected) {
+        await disconnect();
+      }
+    }
+  };
+
+  const handleSolanaDisconnect = async () => {
+    try {
+      await disconnect();
+      setSelectedProvider(null);
+      clearError();
+      console.log('🔌 [AUTH] Wallet disconnected');
+    } catch (err) {
+      console.error('❌ [AUTH] Error disconnecting wallet:', err);
     }
   };
 
@@ -127,36 +157,64 @@ export const Login: React.FC = () => {
               </div>
             </button>
 
-            {/* Solana Web3 Login */}
-            <button
-              onClick={handleSolanaLogin}
-              disabled={loading}
-              className={`
-                w-full tactical-button p-4 flex items-center justify-center gap-3
-                bg-gradient-to-r from-purple-900/30 to-blue-900/30 
-                border border-purple-500/50 hover:border-purple-400/70
-                ${loading && selectedProvider === 'solana' 
-                  ? 'opacity-50 cursor-not-allowed' 
-                  : 'hover:bg-gradient-to-r hover:from-purple-900/50 hover:to-blue-900/50'
-                }
-              `}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-5 h-5 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full flex items-center justify-center">
-                  <svg viewBox="0 0 24 24" className="w-3 h-3 text-white">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-                  </svg>
+            {/* Solana Wallet Section */}
+            <div className="space-y-3">
+              {/* Wallet Connection Button */}
+              {!connected ? (
+                <div className="w-full">
+                  <WalletMultiButton 
+                    className="!w-full !tactical-button !p-4 !flex !items-center !justify-center !gap-3 !bg-gradient-to-r !from-purple-900/30 !to-blue-900/30 !border !border-purple-500/50 hover:!border-purple-400/70 hover:!bg-gradient-to-r hover:!from-purple-900/50 hover:!to-blue-900/50 !tactical-text-xs !font-medium"
+                  />
                 </div>
-                <span className="tactical-text-xs font-medium">
-                  {loading && selectedProvider === 'solana' 
-                    ? 'CONNECTING WALLET...' 
-                    : connected 
-                      ? `SOLANA WALLET (${publicKey?.toString().slice(0, 4)}...${publicKey?.toString().slice(-4)})`
-                      : 'SOLANA WEB3 ACCESS (BETA)'
-                  }
-                </span>
-              </div>
-            </button>
+              ) : (
+                <div className="space-y-2">
+                  {/* Connected Wallet Display */}
+                  <div className="w-full tactical-button p-4 flex items-center justify-between gap-3 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                      <span className="tactical-text-xs font-medium">
+                        WALLET CONNECTED
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleSolanaDisconnect}
+                      className="text-xs tactical-text-dim hover:tactical-text underline"
+                    >
+                      DISCONNECT
+                    </button>
+                  </div>
+                  
+                  {/* Authentication Button */}
+                  <button
+                    onClick={handleSolanaLogin}
+                    disabled={loading}
+                    className={`
+                      w-full tactical-button p-4 flex items-center justify-center gap-3
+                      bg-gradient-to-r from-green-900/30 to-blue-900/30 
+                      border border-green-500/50 hover:border-green-400/70
+                      ${loading && selectedProvider === 'solana' 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'hover:bg-gradient-to-r hover:from-green-900/50 hover:to-blue-900/50'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 bg-gradient-to-r from-green-400 to-blue-400 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs">🔐</span>
+                      </div>
+                      <span className="tactical-text-xs font-medium">
+                        {loading && selectedProvider === 'solana' 
+                          ? 'AUTHENTICATING...' 
+                          : 'AUTHENTICATE WITH WALLET'
+                        }
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Solana Wallet Status */}
@@ -166,14 +224,14 @@ export const Login: React.FC = () => {
                 <span className="text-sm">🌟</span>
                 <span className="text-xs font-medium">WALLET CONNECTED</span>
               </div>
-              <p className="text-xs mt-1 tactical-text-dim font-mono">
+              <p className="text-xs mt-1 tactical-text-dim font-mono break-all">
                 {publicKey.toString()}
               </p>
             </div>
           )}
 
-          {/* Beta Notice for Solana */}
-          <div className="mt-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded">
+          {/* Beta Notice for Authentication Status */}
+          <div className="mt-6 p-3 bg-blue-900/20 border border-blue-500/30 rounded">
             <div className="flex items-center gap-2 text-blue-400">
               <span className="text-sm">ℹ️</span>
               <span className="text-xs font-medium">AUTHENTICATION STATUS</span>
@@ -185,11 +243,11 @@ export const Login: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-yellow-400">⚠️</span>
-                <span>Twitter OAuth - In Progress</span>
+                <span>Twitter OAuth - Configuration Needed</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-blue-400">🔄</span>
-                <span>Solana Web3 - Beta (Backend Setup Required)</span>
+                <span>Solana Web3 - Wallet Connection Ready</span>
               </div>
             </div>
           </div>
