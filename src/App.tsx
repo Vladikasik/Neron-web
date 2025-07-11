@@ -288,21 +288,42 @@ function App() {
       persistent: false
     };
 
-    setState(prev => ({
-      ...prev,
-      selectedNodes: [newSelection]
-    }));
+    setState(prev => {
+      // In hover mode, replace existing selections (original behavior)
+      if (prev.isHoverMode) {
+        return {
+          ...prev,
+          selectedNodes: [newSelection]
+        };
+      } else {
+        // In no hover mode, allow multiple tabs without centering
+        // Check if this node is already selected
+        const existingIndex = prev.selectedNodes.findIndex(sel => sel.node.id === node.id);
+        if (existingIndex >= 0) {
+          // Node already selected, don't add duplicate
+          return prev;
+        } else {
+          // Add new selection to existing ones
+          return {
+            ...prev,
+            selectedNodes: [...prev.selectedNodes, newSelection]
+          };
+        }
+      }
+    });
 
-    // Center on clicked node
-    setTimeout(() => {
-      graphRef.current?.centerOnNode(node.id);
-    }, 100);
+    // Only center on clicked node if in hover mode
+    if (state.isHoverMode) {
+      setTimeout(() => {
+        graphRef.current?.centerOnNode(node.id);
+      }, 100);
+    }
 
     consoleRef.current?.addMessage({
       type: 'system',
       content: `NODE SELECTED: ${node.name} (${node.type})`
     });
-  }, []);
+  }, [state.isHoverMode]);
 
   const handleNodeDoubleClick = useCallback((node: GraphNode, event: MouseEvent) => {
     const newSelection: NodeSelection = {
@@ -481,54 +502,43 @@ function App() {
           </div>
         </div>
 
-        {/* Minimap */}
-        <div className="tactical-minimap">
-          <div className="tactical-panel-header">
-            TACTICAL OVERVIEW
-          </div>
-          <div className="tactical-panel-content h-full">
-            <svg width="100%" height="100%" viewBox="-150 -150 300 300">
-              {/* Grid */}
-              <defs>
-                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="hsl(var(--tactical-grid))" strokeWidth="0.5" opacity="0.3"/>
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
+        {/* Transparent Minimap */}
+        <div className="tactical-minimap-transparent">
+          <svg width="200" height="150" viewBox="-150 -150 300 300">
+            {/* Links */}
+            {state.graphData.links.map((link, index) => {
+              const sourceNode = state.graphData.nodes.find(n => n.id === (typeof link.source === 'string' ? link.source : link.source.id));
+              const targetNode = state.graphData.nodes.find(n => n.id === (typeof link.target === 'string' ? link.target : link.target.id));
+              if (!sourceNode || !targetNode) return null;
               
-              {/* Links */}
-              {state.graphData.links.map((link, index) => {
-                const sourceNode = state.graphData.nodes.find(n => n.id === (typeof link.source === 'string' ? link.source : link.source.id));
-                const targetNode = state.graphData.nodes.find(n => n.id === (typeof link.target === 'string' ? link.target : link.target.id));
-                if (!sourceNode || !targetNode) return null;
-                
-                return (
-                  <line
-                    key={index}
-                    x1={sourceNode.x || 0}
-                    y1={sourceNode.y || 0}
-                    x2={targetNode.x || 0}
-                    y2={targetNode.y || 0}
-                    stroke="hsl(var(--tactical-primary))"
-                    strokeWidth="1"
-                    opacity="0.6"
-                  />
-                );
-              })}
-              
-              {/* Nodes */}
-              {state.graphData.nodes.map((node) => (
-                <circle
-                  key={node.id}
-                  cx={node.x || 0}
-                  cy={node.y || 0}
-                  r={Math.max(2, (node.size || 5) / 2)}
-                  fill={state.highlightedNodes.has(node.id) ? "hsl(var(--tactical-accent))" : "hsl(var(--tactical-primary))"}
-                  opacity={state.highlightedNodes.has(node.id) ? 1 : 0.8}
+              return (
+                <line
+                  key={index}
+                  x1={sourceNode.x || 0}
+                  y1={sourceNode.y || 0}
+                  x2={targetNode.x || 0}
+                  y2={targetNode.y || 0}
+                  stroke="hsl(var(--tactical-primary))"
+                  strokeWidth="1.5"
+                  opacity="0.8"
                 />
-              ))}
-            </svg>
-          </div>
+              );
+            })}
+            
+            {/* Nodes */}
+            {state.graphData.nodes.map((node) => (
+              <circle
+                key={node.id}
+                cx={node.x || 0}
+                cy={node.y || 0}
+                r={Math.max(3, (node.size || 5) / 2)}
+                fill={state.highlightedNodes.has(node.id) ? "hsl(var(--tactical-accent))" : "hsl(var(--tactical-primary))"}
+                opacity={state.highlightedNodes.has(node.id) ? 1 : 0.9}
+                stroke={state.highlightedNodes.has(node.id) ? "hsl(var(--tactical-accent))" : "transparent"}
+                strokeWidth="1"
+              />
+            ))}
+          </svg>
         </div>
 
         {/* Shortcuts Panel */}
