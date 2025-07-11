@@ -444,14 +444,33 @@ function App() {
           </button>
         )}
 
-        {/* Logout Button - Top Right Corner */}
-        <div className="absolute top-4 right-4 pointer-events-auto">
+        {/* User Info & Logout - Top Right Corner */}
+        <div className="absolute top-4 right-4 pointer-events-auto flex items-center gap-3">
+          {/* User Info Display */}
+          <div className="tactical-window p-3 bg-green-900/20 border border-green-500/30">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <div className="text-xs">
+                <div className="tactical-text-xs font-medium text-green-400">
+                  {user?.user_metadata?.provider?.toUpperCase() || 'WEB3'} SESSION ACTIVE
+                </div>
+                <div className="tactical-text-dim text-xs">
+                  {user?.email 
+                    ? user.email.split('@')[0].toUpperCase()
+                    : user?.user_metadata?.wallet_address?.slice(0, 8)?.toUpperCase() || 'AUTHENTICATED'
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Logout Button */}
           <button
             onClick={signOut}
             className="tactical-button px-4 py-2 tactical-text-xs bg-red-900/30 border border-red-500/50 hover:bg-red-900/50 transition-colors"
             title="Sign Out"
           >
-            LOGOUT [{user?.email?.split('@')[0]?.toUpperCase()}]
+            LOGOUT
           </button>
         </div>
 

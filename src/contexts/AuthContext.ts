@@ -6,7 +6,8 @@ export interface AuthContextType {
   session: Session | null;
   loading: boolean;
   error: string | null;
-  signInWithOAuth: (provider: 'github' | 'twitter' | 'google') => Promise<void>;
+  signInWithOAuth: (provider: 'github' | 'twitter') => Promise<void>;
+  signInWithSolana: () => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
