@@ -138,7 +138,7 @@ React-based 3D graph visualization with AI-powered MCP integration featuring int
 - ANTHROPIC_API_KEY: ✅ Configured
 - MCP_URL: ✅ https://memory.aynshteyn.dev/sse
 - Deployment: ✅ Vercel configured
-- Development Server: ✅ Running on http://localhost:5177
+- Development Server: ✅ Running on http://localhost:5173 (dev) / https://neron.guru (prod)
 
 **Latest Fixes Applied**:
 - ✅ Balanced system prompt (AI decides when to use tools)

@@ -1,5 +1,6 @@
 // MCP Integration Test Suite
 import { createMCPClient } from './mcpIntegration';
+import { supabase } from './supabase';
 
 export interface TestResult {
   name: string;
@@ -213,3 +214,66 @@ declare global {
 if (typeof window !== 'undefined') {
   window.mcpTester = mcpTester;
 } 
+
+// Test Web3 authentication configuration
+export const testWeb3Config = async () => {
+  console.log('🧪 [TEST] Testing Web3 authentication configuration...');
+  
+  try {
+    // Test Web3 configuration by attempting to use it
+    console.log('🧪 [TEST] Testing Web3 authentication method...');
+    
+    try {
+      // This should fail gracefully if not configured properly
+      const { error: web3Error } = await supabase.auth.signInWithWeb3({
+        chain: 'solana',
+        statement: 'Test configuration',
+        wallet: undefined, // Will fail but should give us configuration info
+      });
+      
+      if (web3Error) {
+        console.log('🔍 [TEST] Web3 error (expected):', web3Error.message);
+        
+        if (web3Error.message.includes('not configured') || 
+            web3Error.message.includes('Web3') ||
+            web3Error.message.includes('provider')) {
+          return { success: false, error: 'Web3 provider not configured in Supabase' };
+        }
+        
+        // If it's a wallet error, the Web3 provider is configured
+        if (web3Error.message.includes('wallet') || 
+            web3Error.message.includes('undefined')) {
+          console.log('✅ [TEST] Web3 provider appears to be configured (wallet error is expected)');
+          return { success: true, error: null };
+        }
+      }
+      
+      console.log('✅ [TEST] Web3 authentication configured successfully');
+      return { success: true, error: null };
+      
+    } catch (testError) {
+      console.error('❌ [TEST] Web3 test error:', testError);
+      return { success: false, error: testError instanceof Error ? testError.message : 'Web3 test failed' };
+    }
+    
+  } catch (err) {
+    console.error('❌ [TEST] Exception during Web3 test:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+};
+
+// Test function to run Web3 configuration check
+export const runWeb3Test = async () => {
+  console.log('🚀 [TEST] Running Web3 configuration test...');
+  const result = await testWeb3Config();
+  
+  console.log('📊 [TEST] Test results:', result);
+  
+  if (result.success) {
+    console.log('✅ [TEST] Web3 authentication is properly configured!');
+  } else {
+    console.error('❌ [TEST] Web3 authentication configuration issue:', result.error);
+  }
+  
+  return result;
+}; 

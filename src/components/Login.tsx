@@ -294,12 +294,20 @@ export const Login: React.FC = () => {
                     WALLET
                   </span>
                 </div>
-                <button
-                  onClick={handleSolanaDisconnect}
-                  className="text-xs text-gray-400 hover:text-white uppercase tracking-wide underline"
-                >
-                  DISCONNECT
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSolanaAuth}
+                    className="text-xs text-green-400 hover:text-white uppercase tracking-wide underline"
+                  >
+                    TEST AUTH
+                  </button>
+                  <button
+                    onClick={handleSolanaDisconnect}
+                    className="text-xs text-gray-400 hover:text-white uppercase tracking-wide underline"
+                  >
+                    DISCONNECT
+                  </button>
+                </div>
               </div>
               <div className="mt-1 text-xs text-gray-400 font-mono">
                 {publicKey.toString().slice(0, 8)}...{publicKey.toString().slice(-8)}
