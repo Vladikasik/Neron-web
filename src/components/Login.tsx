@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 export const Login: React.FC = () => {
   const { signInWithOAuth, signInWithSolana, loading, error, clearError } = useAuth();
-  const { connected, publicKey, disconnect } = useWallet();
+  const { connected, publicKey, disconnect, select, wallets } = useWallet();
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [hasAttemptedSolanaAuth, setHasAttemptedSolanaAuth] = useState(false);
+  const [showWalletSelection, setShowWalletSelection] = useState(false);
+  const authAttemptRef = useRef<boolean>(false);
 
   console.log('🔧 [AUTH] Login component rendered');
   console.log('🌟 [AUTH] Solana wallet state:', { connected, publicKey: publicKey?.toString() });
@@ -14,15 +17,29 @@ export const Login: React.FC = () => {
   useEffect(() => {
     // Clear any existing errors when component mounts
     clearError();
+    // Reset auth attempt tracking when component mounts
+    authAttemptRef.current = false;
+    setHasAttemptedSolanaAuth(false);
+    setShowWalletSelection(false);
   }, [clearError]);
 
-  // Handle Solana wallet connection change
+  // Reset auth attempt tracking when wallet disconnects
   useEffect(() => {
-    if (connected && publicKey) {
-      console.log('🌟 [AUTH] Wallet connected, attempting Solana authentication...');
-      handleSolanaLogin();
+    if (!connected) {
+      authAttemptRef.current = false;
+      setHasAttemptedSolanaAuth(false);
+      setSelectedProvider(null);
+      setShowWalletSelection(false);
     }
-  }, [connected, publicKey]);
+  }, [connected]);
+
+  // Auto-authenticate when wallet connects (if user initiated Solana login)
+  useEffect(() => {
+    if (connected && publicKey && selectedProvider === 'solana' && !hasAttemptedSolanaAuth) {
+      console.log('🌟 [AUTH] Wallet connected, proceeding with authentication...');
+      handleSolanaAuth();
+    }
+  }, [connected, publicKey, selectedProvider, hasAttemptedSolanaAuth]);
 
   const handleProviderLogin = async (provider: 'github' | 'twitter') => {
     console.log(`🔐 [AUTH] User selected ${provider.toUpperCase()} login`);
@@ -37,13 +54,45 @@ export const Login: React.FC = () => {
   };
 
   const handleSolanaLogin = async () => {
-    if (!connected || !publicKey) {
-      console.log('🌟 [AUTH] Wallet not connected, user needs to select wallet first');
+    console.log('🌟 [AUTH] User selected SOLANA login');
+    setSelectedProvider('solana');
+    setShowWalletSelection(false);
+
+    // If already connected, authenticate immediately
+    if (connected && publicKey) {
+      await handleSolanaAuth();
+    } else {
+      // Need to connect wallet first
+      setShowWalletSelection(true);
+      // Try to connect to Phantom by default if available
+      const phantomWallet = wallets.find(wallet => wallet.adapter.name === 'Phantom');
+      if (phantomWallet) {
+        try {
+          await select(phantomWallet.adapter.name);
+        } catch (err) {
+          console.error('❌ [AUTH] Failed to select Phantom wallet:', err);
+          setShowWalletSelection(true);
+        }
+      }
+    }
+  };
+
+  const handleSolanaAuth = async () => {
+    // Prevent multiple simultaneous authentication attempts
+    if (authAttemptRef.current || hasAttemptedSolanaAuth) {
+      console.log('🔧 [AUTH] Solana authentication already in progress or attempted');
       return;
     }
 
-    console.log('🌟 [AUTH] Wallet connected, proceeding with authentication...');
-    setSelectedProvider('solana');
+    if (!connected || !publicKey) {
+      console.log('🌟 [AUTH] Wallet not connected, cannot authenticate');
+      return;
+    }
+
+    console.log('🌟 [AUTH] Starting Solana authentication...');
+    authAttemptRef.current = true;
+    setHasAttemptedSolanaAuth(true);
+    setShowWalletSelection(false);
     
     try {
       await signInWithSolana();
@@ -55,6 +104,8 @@ export const Login: React.FC = () => {
       if (connected) {
         await disconnect();
       }
+    } finally {
+      authAttemptRef.current = false;
     }
   };
 
@@ -62,6 +113,9 @@ export const Login: React.FC = () => {
     try {
       await disconnect();
       setSelectedProvider(null);
+      setHasAttemptedSolanaAuth(false);
+      setShowWalletSelection(false);
+      authAttemptRef.current = false;
       clearError();
       console.log('🔌 [AUTH] Wallet disconnected');
     } catch (err) {
@@ -69,198 +123,220 @@ export const Login: React.FC = () => {
     }
   };
 
+  const getSolanaButtonText = () => {
+    if (loading && selectedProvider === 'solana') {
+      if (connected) {
+        return 'AUTHENTICATING...';
+      } else {
+        return 'CONNECTING...';
+      }
+    }
+    
+    if (connected && publicKey) {
+      return 'SOLANA CONNECTED';
+    }
+    
+    return 'SOLANA ACCESS';
+  };
+
+  const getSolanaButtonStatus = () => {
+    if (loading && selectedProvider === 'solana') {
+      return connected ? '...' : 'CONNECTING...';
+    }
+    
+    if (connected && publicKey) {
+      return '✓';
+    }
+    
+    return '→';
+  };
+
   return (
-    <div className="tactical-bg w-full h-screen flex items-center justify-center">
-      <div className="tactical-window max-w-md w-full mx-4">
-        <div className="p-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="tactical-text text-3xl font-bold mb-2">
-              NERON ACCESS
-            </h1>
-            <p className="tactical-text-dim text-sm">
-              TACTICAL NEURAL INTERFACE AUTHENTICATION
-            </p>
-            <div className="h-px bg-gradient-to-r from-transparent via-green-500 to-transparent mt-4 opacity-50" />
-          </div>
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-white uppercase tracking-widest mb-2">
+            NERON
+          </h1>
+          <p className="text-xs text-gray-400 uppercase tracking-wider">
+            TACTICAL AUTHENTICATION
+          </p>
+          <div className="w-full h-px bg-gradient-to-r from-transparent via-green-400 to-transparent mt-4" />
+        </div>
 
-          {/* Error Display */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-900/30 border border-red-500/50 rounded">
-              <div className="flex items-center gap-2 tactical-text-red">
-                <span className="text-lg">⚠</span>
-                <span className="text-sm font-medium">AUTH ERROR</span>
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-900/20 border border-red-400/30 rounded-none">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-red-400 text-sm">█</span>
+              <span className="text-red-400 text-xs font-bold uppercase tracking-wide">
+                AUTH ERROR
+              </span>
+            </div>
+            <p className="text-xs text-gray-300 mb-2 leading-relaxed">{error}</p>
+            <button
+              onClick={clearError}
+              className="text-xs text-gray-400 hover:text-white uppercase tracking-wide underline"
+            >
+              DISMISS
+            </button>
+          </div>
+        )}
+
+        {/* Authentication Methods */}
+        <div className="space-y-3">
+          {/* GitHub Access */}
+          <button
+            onClick={() => handleProviderLogin('github')}
+            disabled={loading}
+            className={`
+              w-full p-4 bg-gray-900/50 border border-gray-600/50 
+              hover:border-green-400/50 hover:bg-gray-800/50 
+              transition-all duration-200 text-left
+              ${loading && selectedProvider === 'github' 
+                ? 'opacity-50 cursor-not-allowed border-green-400/50' 
+                : ''
+              }
+            `}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-white"></div>
+                <span className="text-white text-xs font-medium uppercase tracking-wide">
+                  GITHUB ACCESS
+                </span>
               </div>
-              <p className="text-sm mt-1 tactical-text-dim">{error}</p>
-              <button
-                onClick={clearError}
-                className="text-xs tactical-text-dim hover:tactical-text mt-2 underline"
-              >
-                DISMISS
-              </button>
+              <div className="text-gray-400 text-xs">
+                {loading && selectedProvider === 'github' ? 'CONNECTING...' : '→'}
+              </div>
+            </div>
+          </button>
+
+          {/* Twitter Access */}
+          <button
+            onClick={() => handleProviderLogin('twitter')}
+            disabled={loading}
+            className={`
+              w-full p-4 bg-gray-900/50 border border-gray-600/50 
+              hover:border-blue-400/50 hover:bg-gray-800/50 
+              transition-all duration-200 text-left
+              ${loading && selectedProvider === 'twitter' 
+                ? 'opacity-50 cursor-not-allowed border-blue-400/50' 
+                : ''
+              }
+            `}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-blue-400"></div>
+                <span className="text-white text-xs font-medium uppercase tracking-wide">
+                  TWITTER ACCESS
+                </span>
+              </div>
+              <div className="text-gray-400 text-xs">
+                {loading && selectedProvider === 'twitter' ? 'CONNECTING...' : '→'}
+              </div>
+            </div>
+          </button>
+
+          {/* Solana Access - Same Style as Others */}
+          <button
+            onClick={handleSolanaLogin}
+            disabled={loading}
+            className={`
+              w-full p-4 bg-gray-900/50 border border-gray-600/50 
+              hover:border-purple-400/50 hover:bg-gray-800/50 
+              transition-all duration-200 text-left
+              ${loading && selectedProvider === 'solana' 
+                ? 'opacity-50 cursor-not-allowed border-purple-400/50' 
+                : ''
+              }
+              ${connected && publicKey
+                ? 'border-purple-400/50 bg-purple-900/20'
+                : ''
+              }
+            `}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-purple-400"></div>
+                <span className="text-white text-xs font-medium uppercase tracking-wide">
+                  {getSolanaButtonText()}
+                </span>
+              </div>
+              <div className="text-gray-400 text-xs">
+                {getSolanaButtonStatus()}
+              </div>
+            </div>
+          </button>
+
+          {/* Wallet Selection Modal - Only shown when needed */}
+          {showWalletSelection && (
+            <div className="mt-2 p-4 bg-purple-900/10 border border-purple-400/30 rounded-none">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-purple-400 text-xs">▌</span>
+                <span className="text-purple-400 text-xs font-medium uppercase tracking-wide">
+                  SELECT WALLET
+                </span>
+              </div>
+              <WalletMultiButton className="!w-full !bg-transparent !border !border-purple-400/50 !text-purple-400 !text-xs !font-medium !uppercase !tracking-wide !rounded-none !p-2 hover:!bg-purple-400/10 hover:!text-white" />
             </div>
           )}
 
-          {/* OAuth Buttons */}
-          <div className="space-y-4">
-            {/* GitHub Login */}
-            <button
-              onClick={() => handleProviderLogin('github')}
-              disabled={loading}
-              className={`
-                w-full tactical-button p-4 flex items-center justify-center gap-3
-                ${loading && selectedProvider === 'github' 
-                  ? 'opacity-50 cursor-not-allowed' 
-                  : 'hover:tactical-button-hover'
-                }
-              `}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
-                  <svg viewBox="0 0 16 16" className="w-3 h-3 text-black">
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                  </svg>
-                </div>
-                <span className="tactical-text-xs font-medium">
-                  {loading && selectedProvider === 'github' 
-                    ? 'CONNECTING TO GITHUB...' 
-                    : 'GITHUB ACCESS'
-                  }
-                </span>
-              </div>
-            </button>
-
-            {/* Twitter Login */}
-            <button
-              onClick={() => handleProviderLogin('twitter')}
-              disabled={loading}
-              className={`
-                w-full tactical-button p-4 flex items-center justify-center gap-3
-                ${loading && selectedProvider === 'twitter' 
-                  ? 'opacity-50 cursor-not-allowed' 
-                  : 'hover:tactical-button-hover'
-                }
-              `}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                  <svg viewBox="0 0 24 24" className="w-3 h-3 text-white">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                  </svg>
-                </div>
-                <span className="tactical-text-xs font-medium">
-                  {loading && selectedProvider === 'twitter' 
-                    ? 'CONNECTING TO TWITTER...' 
-                    : 'TWITTER ACCESS'
-                  }
-                </span>
-              </div>
-            </button>
-
-            {/* Solana Wallet Section */}
-            <div className="space-y-3">
-              {/* Wallet Connection Button */}
-              {!connected ? (
-                <div className="w-full">
-                  <WalletMultiButton 
-                    className="!w-full !tactical-button !p-4 !flex !items-center !justify-center !gap-3 !bg-gradient-to-r !from-purple-900/30 !to-blue-900/30 !border !border-purple-500/50 hover:!border-purple-400/70 hover:!bg-gradient-to-r hover:!from-purple-900/50 hover:!to-blue-900/50 !tactical-text-xs !font-medium"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {/* Connected Wallet Display */}
-                  <div className="w-full tactical-button p-4 flex items-center justify-between gap-3 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-5 h-5 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs">✓</span>
-                      </div>
-                      <span className="tactical-text-xs font-medium">
-                        WALLET CONNECTED
-                      </span>
-                    </div>
-                    <button
-                      onClick={handleSolanaDisconnect}
-                      className="text-xs tactical-text-dim hover:tactical-text underline"
-                    >
-                      DISCONNECT
-                    </button>
-                  </div>
-                  
-                  {/* Authentication Button */}
-                  <button
-                    onClick={handleSolanaLogin}
-                    disabled={loading}
-                    className={`
-                      w-full tactical-button p-4 flex items-center justify-center gap-3
-                      bg-gradient-to-r from-green-900/30 to-blue-900/30 
-                      border border-green-500/50 hover:border-green-400/70
-                      ${loading && selectedProvider === 'solana' 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'hover:bg-gradient-to-r hover:from-green-900/50 hover:to-blue-900/50'
-                      }
-                    `}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-5 h-5 bg-gradient-to-r from-green-400 to-blue-400 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs">🔐</span>
-                      </div>
-                      <span className="tactical-text-xs font-medium">
-                        {loading && selectedProvider === 'solana' 
-                          ? 'AUTHENTICATING...' 
-                          : 'AUTHENTICATE WITH WALLET'
-                        }
-                      </span>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Solana Wallet Status */}
+          {/* Connected Wallet Info - Compact */}
           {connected && publicKey && (
-            <div className="mt-4 p-3 bg-purple-900/20 border border-purple-500/30 rounded">
-              <div className="flex items-center gap-2 text-purple-400">
-                <span className="text-sm">🌟</span>
-                <span className="text-xs font-medium">WALLET CONNECTED</span>
+            <div className="mt-2 p-3 bg-purple-900/10 border border-purple-400/30 rounded-none">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-purple-400 text-xs">▌</span>
+                  <span className="text-purple-400 text-xs font-medium uppercase tracking-wide">
+                    WALLET
+                  </span>
+                </div>
+                <button
+                  onClick={handleSolanaDisconnect}
+                  className="text-xs text-gray-400 hover:text-white uppercase tracking-wide underline"
+                >
+                  DISCONNECT
+                </button>
               </div>
-              <p className="text-xs mt-1 tactical-text-dim font-mono break-all">
-                {publicKey.toString()}
-              </p>
+              <div className="mt-1 text-xs text-gray-400 font-mono">
+                {publicKey.toString().slice(0, 8)}...{publicKey.toString().slice(-8)}
+              </div>
             </div>
           )}
+        </div>
 
-          {/* Beta Notice for Authentication Status */}
-          <div className="mt-6 p-3 bg-blue-900/20 border border-blue-500/30 rounded">
-            <div className="flex items-center gap-2 text-blue-400">
-              <span className="text-sm">ℹ️</span>
-              <span className="text-xs font-medium">AUTHENTICATION STATUS</span>
+        {/* Status Panel */}
+        <div className="mt-6 p-4 bg-gray-900/30 border border-gray-600/30">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-gray-400 text-xs">▌</span>
+            <span className="text-gray-400 text-xs font-medium uppercase tracking-wide">
+              SYSTEM STATUS
+            </span>
+          </div>
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400 uppercase tracking-wide">GitHub OAuth</span>
+              <span className="text-green-400">OPERATIONAL</span>
             </div>
-            <div className="text-xs mt-2 tactical-text-dim space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-green-400">✅</span>
-                <span>GitHub OAuth - Fully Working</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-yellow-400">⚠️</span>
-                <span>Twitter OAuth - Configuration Needed</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-blue-400">🔄</span>
-                <span>Solana Web3 - Wallet Connection Ready</span>
-              </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400 uppercase tracking-wide">Twitter OAuth</span>
+              <span className="text-yellow-400">CONFIG REQUIRED</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400 uppercase tracking-wide">Solana Web3</span>
+              <span className="text-green-400">OPERATIONAL</span>
             </div>
           </div>
+        </div>
 
-          {/* Footer */}
-          <div className="mt-8 text-center">
-            <p className="tactical-text-dim text-xs">
-              SECURE AUTHENTICATION REQUIRED
-            </p>
-            <p className="tactical-text-dim text-xs mt-1">
-              WEB3 & OAUTH SESSIONS MONITORED
-            </p>
-          </div>
+        {/* Footer */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-gray-500 uppercase tracking-widest">
+            SECURE AUTHENTICATION REQUIRED
+          </p>
         </div>
       </div>
     </div>

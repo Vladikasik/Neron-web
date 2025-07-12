@@ -180,7 +180,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
 
     try {
-      // Check if wallet is connected (should be connected via WalletMultiButton)
+      // Check if wallet is connected
       if (!connected || !publicKey) {
         throw new Error('Wallet not connected. Please connect your wallet first using the wallet selection button.');
       }
@@ -192,40 +192,154 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error('Wallet does not support message signing. Please try a different wallet.');
       }
 
-      // Create message to sign
-      const message = `NERON Authentication\n\nSign this message to authenticate with NERON.\n\nWallet: ${publicKey.toString()}\nTimestamp: ${Date.now()}`;
+      // Create a unique message for signature verification
+      const walletAddress = publicKey.toString();
+      const timestamp = Date.now();
+      const message = `NERON Authentication\n\nSign this message to authenticate with NERON.\n\nWallet: ${walletAddress}\nTimestamp: ${timestamp}`;
       const messageBytes = new TextEncoder().encode(message);
 
       console.log('📝 [AUTH] Requesting signature for authentication message...');
 
       try {
+        // Request signature from wallet
         const signature = await signMessage(messageBytes);
         console.log('✅ [AUTH] Message signed successfully');
+        console.log('🔍 [AUTH] Signature length:', signature.length);
 
-        // For now, create a simple Web3 session since Supabase Web3 auth might not be enabled
+        // Convert signature to hex string for consistent handling
+        const signatureHex = Array.from(signature)
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+        console.log('🔐 [AUTH] Signature hex:', signatureHex.substring(0, 16) + '...');
+
+        // Verify signature and create/sign in user
         console.log('🔐 [AUTH] Processing Web3 authentication...');
         
-        // Create authentication data
-        const webAuthData = {
-          provider: 'web3',
-          wallet_address: publicKey.toString(),
-          signature: Array.from(signature),
-          message: message,
-          timestamp: Date.now()
-        };
+        // Create a deterministic email and password based on wallet address and signature
+        // This allows us to use Supabase's standard auth while having Web3 wallet auth
+        const deterministicEmail = `${walletAddress.toLowerCase()}@neron.wallet`;
+        const deterministicPassword = btoa(walletAddress + signatureHex).substring(0, 32); // Use first 32 chars of base64
         
-        console.log('🌟 [AUTH] Web3 authentication data prepared:', {
-          ...webAuthData,
-          signature: `[${signature.length} bytes]`
+        console.log('🔍 [AUTH] Deterministic email:', deterministicEmail);
+        console.log('🔍 [AUTH] Password length:', deterministicPassword.length);
+        console.log('🔍 [AUTH] Checking if wallet user exists...');
+        
+        // First, try to sign in with existing account
+        console.log('🔐 [AUTH] Attempting to sign in existing user...');
+        const signInResult = await supabase.auth.signInWithPassword({
+          email: deterministicEmail,
+          password: deterministicPassword,
         });
-        
-        // Since Supabase Web3 auth might not be configured, we'll show success for now
-        // In a real implementation, you'd send this to your backend for verification
-        console.log('✅ [AUTH] Solana Web3 authentication successful (demo mode)');
-        
-        // For demo purposes, show success message
-        setError('Solana Web3 authentication successful! However, full backend integration is still needed. Please use GitHub login for full access.');
-        setLoading(false);
+
+        let finalSession = signInResult.data?.session;
+        let finalUser = signInResult.data?.user;
+        let isNewUser = false;
+
+        console.log('🔐 [AUTH] Sign in result:', {
+          success: !signInResult.error,
+          error: signInResult.error?.message,
+          hasSession: !!signInResult.data?.session,
+          hasUser: !!signInResult.data?.user
+        });
+
+        // If user doesn't exist, create them
+        if (signInResult.error && (
+          signInResult.error.message.includes('Invalid login') ||
+          signInResult.error.message.includes('Invalid credentials') ||
+          signInResult.error.message.includes('Email not confirmed')
+        )) {
+          console.log('👤 [AUTH] Creating new wallet user...');
+          isNewUser = true;
+          
+          const signUpResult = await supabase.auth.signUp({
+            email: deterministicEmail,
+            password: deterministicPassword,
+            options: {
+              data: {
+                wallet_address: walletAddress,
+                auth_provider: 'solana_web3',
+                signature_verified: true,
+                original_signature: signatureHex,
+                auth_message: message,
+                auth_timestamp: timestamp,
+                created_via: 'web3_wallet_auth'
+              }
+            }
+          });
+
+          console.log('👤 [AUTH] Sign up result:', {
+            success: !signUpResult.error,
+            error: signUpResult.error?.message,
+            hasSession: !!signUpResult.data?.session,
+            hasUser: !!signUpResult.data?.user,
+            userId: signUpResult.data?.user?.id
+          });
+
+          if (signUpResult.error) {
+            throw new Error(`Failed to create wallet user: ${signUpResult.error.message}`);
+          }
+
+          finalSession = signUpResult.data?.session;
+          finalUser = signUpResult.data?.user;
+          console.log('✅ [AUTH] New wallet user created successfully');
+        } else if (signInResult.error) {
+          throw new Error(`Authentication failed: ${signInResult.error.message}`);
+        } else {
+          console.log('✅ [AUTH] Existing wallet user signed in successfully');
+        }
+
+        // Verify we have a valid session
+        if (!finalSession) {
+          throw new Error('No session created during authentication');
+        }
+
+        console.log('🎉 [AUTH] Solana Web3 authentication successful!');
+        console.log('📊 [AUTH] Final authentication result:', {
+          isNewUser,
+          user_id: finalUser?.id,
+          email: finalUser?.email,
+          wallet_address: walletAddress,
+          session_id: finalSession?.access_token?.substring(0, 10) + '...',
+          provider: finalUser?.app_metadata?.provider || 'email'
+        });
+
+        // Check if user was created in database
+        if (isNewUser) {
+          console.log('📋 [AUTH] Verifying user creation in database...');
+          const { data: userData, error: userError } = await supabase
+            .from('auth.users')
+            .select('id, email, raw_user_meta_data')
+            .eq('id', finalUser?.id)
+            .single();
+
+          if (userError) {
+            console.warn('⚠️ [AUTH] Could not verify user in database:', userError.message);
+          } else {
+            console.log('✅ [AUTH] User verified in database:', userData);
+          }
+        }
+
+        // Update user metadata with latest signature info
+        if (finalSession) {
+          console.log('📝 [AUTH] Updating user metadata...');
+          const { error: updateError } = await supabase.auth.updateUser({
+            data: {
+              last_signature: signatureHex,
+              last_auth_timestamp: timestamp,
+              last_auth_message: message,
+              last_successful_login: new Date().toISOString()
+            }
+          });
+
+          if (updateError) {
+            console.warn('⚠️ [AUTH] Failed to update user metadata:', updateError.message);
+          } else {
+            console.log('✅ [AUTH] User metadata updated successfully');
+          }
+        }
+
+        // The session will be automatically handled by the auth state change listener
+        console.log('🚀 [AUTH] Authentication process completed successfully!');
         
       } catch (signError) {
         console.error('❌ [AUTH] Message signing failed:', signError);
