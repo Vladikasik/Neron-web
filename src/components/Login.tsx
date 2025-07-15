@@ -331,7 +331,7 @@ export const Login: React.FC = () => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-400 uppercase tracking-wide">Twitter OAuth</span>
-              <span className="text-yellow-400">CONFIG REQUIRED</span>
+              <span className="text-green-400">OPERATIONAL</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-400 uppercase tracking-wide">Solana Web3</span>

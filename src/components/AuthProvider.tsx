@@ -103,67 +103,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const redirectTo = `${window.location.origin}/auth/callback`;
       console.log(`🔐 [AUTH] Redirect URL: ${redirectTo}`);
 
-      // Special handling for Twitter OAuth issues
-      if (provider === 'twitter') {
-        console.log('🐦 [AUTH] Twitter OAuth - checking configuration...');
-        console.log('🐦 [AUTH] Attempting Twitter OAuth with Supabase...');
-        
-        try {
-          // Add Twitter-specific options
-          const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: 'twitter',
-            options: {
-              redirectTo,
-              queryParams: {
-                access_type: 'offline',
-              },
-            },
-          });
-
-          if (error) {
-            console.error('❌ [AUTH] Twitter OAuth error details:', {
-              message: error.message,
-              status: error.status
-            });
-            
-            // Provide more specific error message for Twitter
-            if (error.message.includes('invalid') || error.message.includes('not configured') || error.message.includes('provider')) {
-              setError(`Twitter OAuth is not configured in Supabase. Error: ${error.message}`);
-            } else if (error.message.includes('404') || error.message.includes('not found')) {
-              setError('Twitter OAuth provider not found. Please check Supabase configuration.');
-            } else {
-              setError(`Twitter OAuth failed: ${error.message}`);
-            }
-            throw error;
-          }
-
-          console.log('✅ [AUTH] Twitter OAuth initiated successfully:', data);
-        } catch (networkError) {
-          console.error('❌ [AUTH] Twitter OAuth network/configuration error:', networkError);
-          setError(`Twitter OAuth configuration error: ${networkError instanceof Error ? networkError.message : 'Unknown error'}`);
-          throw networkError;
-        }
-      } else {
-        // GitHub OAuth
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider,
-          options: {
-            redirectTo,
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'consent',
-            },
+      // Use identical OAuth flow for all providers
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
           },
-        });
+        },
+      });
 
-        if (error) {
-          console.error(`❌ [AUTH] OAuth error for ${provider}:`, error);
-          setError(error.message);
-          throw error;
-        }
-
-        console.log(`✅ [AUTH] OAuth initiated for ${provider}:`, data);
+      if (error) {
+        console.error(`❌ [AUTH] OAuth error for ${provider}:`, error);
+        setError(error.message);
+        throw error;
       }
+
+      console.log(`✅ [AUTH] OAuth initiated for ${provider}:`, data);
       
       // The actual sign-in will be handled by the callback
       // Don't set loading to false here, let the auth state change handle it
