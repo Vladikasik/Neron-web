@@ -2,24 +2,24 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
-    <meta name="theme-color" content="#00FF66" />
+    <link rel="icon" href="/favicon-black.ico?v=20250718" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20250718" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NERON - Neural Network Access</title>
-    <script>
-      // Minimal favicon loading verification
-      const favicon = document.querySelector('link[rel="icon"][sizes="32x32"]');
-      if (favicon) {
-        const img = new Image();
-        img.onload = () => console.log('✅ Favicon loaded successfully');
-        img.onerror = () => console.warn('⚠️ Favicon failed to load');
-        img.src = favicon.href;
-      }
-    </script>
+    <title>NERON</title>
+          <script>
+        // Simple favicon loading verification  
+        console.log('🎯 Loading favicon system...');
+        
+        setTimeout(() => {
+          const favicon = document.querySelector('link[rel="icon"]');
+          if (favicon) {
+            const img = new Image();
+            img.onload = () => console.log('✅ Favicon loaded successfully');
+            img.onerror = () => console.warn('⚠️ Favicon failed to load');
+            img.src = favicon.href + '?v=' + Date.now();
+          }
+        }, 100);
+      </script>
   </head>
   <body>
     <div id="root"></div>
