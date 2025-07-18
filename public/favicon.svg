@@ -1,0 +1,12 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="16" height="16" fill="#000000"/>
+  <g transform="scale(0.03125)">
+    <rect width="512" height="512" fill="#000000"/>
+    <rect width="512" height="512" fill="url(#pattern0)"/>
+  </g>
+  <defs>
+    <pattern id="pattern0" patternContentUnits="objectBoundingBox" width="1" height="1">
+      <rect width="100%" height="100%" fill="#00FF66"/>
+    </pattern>
+  </defs>
+</svg> 

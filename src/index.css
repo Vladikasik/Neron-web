@@ -58,7 +58,7 @@
     --tactical-border: 146 100% 20%;
     --tactical-text: 146 100% 85%;
     --tactical-text-dim: 146 50% 65%;
-    --tactical-bg: 0 0% 4%;
+    --tactical-bg: 0 0% 0%;
     --tactical-grid: 146 100% 50%;
   }
 
@@ -86,6 +86,15 @@
 
   html.dark {
     color-scheme: dark;
+  }
+
+  /* Prevent visited links from changing color */
+  a:visited {
+    color: inherit;
+  }
+  
+  a:hover {
+    color: hsl(var(--tactical-primary));
   }
 }
 
@@ -645,6 +654,15 @@
     box-shadow: 0 0 16px hsl(var(--tactical-primary) / 0.5);
   }
 
+  /* Matrix Glow Effects */
+  .matrix-glow {
+    box-shadow: 0 0 4px hsl(var(--primary) / 0.2);
+  }
+
+  .matrix-glow-strong {
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.4);
+  }
+
   .tactical-border {
     border: 1px solid hsl(var(--tactical-border) / 0.3);
   }
@@ -667,6 +685,14 @@
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+  }
+
+  /* Pixelated image rendering */
+  .pixelated {
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-crisp-edges;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
   }
 
   /* Dragging states */

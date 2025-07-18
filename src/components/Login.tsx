@@ -15,15 +15,12 @@ export const Login: React.FC = () => {
   console.log('🌟 [AUTH] Solana wallet state:', { connected, publicKey: publicKey?.toString() });
 
   useEffect(() => {
-    // Clear any existing errors when component mounts
     clearError();
-    // Reset auth attempt tracking when component mounts
     authAttemptRef.current = false;
     setHasAttemptedSolanaAuth(false);
     setShowWalletSelection(false);
   }, [clearError]);
 
-  // Reset auth attempt tracking when wallet disconnects
   useEffect(() => {
     if (!connected) {
       authAttemptRef.current = false;
@@ -33,7 +30,6 @@ export const Login: React.FC = () => {
     }
   }, [connected]);
 
-  // Auto-authenticate when wallet connects (if user initiated Solana login)
   useEffect(() => {
     if (connected && publicKey && selectedProvider === 'solana' && !hasAttemptedSolanaAuth) {
       console.log('🌟 [AUTH] Wallet connected, proceeding with authentication...');
@@ -43,10 +39,6 @@ export const Login: React.FC = () => {
 
   const handleProviderLogin = async (provider: 'github' | 'twitter') => {
     console.log(`🔐 [AUTH] User selected ${provider.toUpperCase()} login`);
-    console.log(`🔐 [AUTH] Testing OAuth configuration for ${provider.toUpperCase()}`);
-    console.log(`🔐 [AUTH] Current URL: ${window.location.href}`);
-    console.log(`🔐 [AUTH] Origin: ${window.location.origin}`);
-    console.log(`🔐 [AUTH] Expected callback: ${window.location.origin}/auth/callback`);
     
     setSelectedProvider(provider);
     
@@ -63,13 +55,10 @@ export const Login: React.FC = () => {
     setSelectedProvider('solana');
     setShowWalletSelection(false);
 
-    // If already connected, authenticate immediately
     if (connected && publicKey) {
       await handleSolanaAuth();
     } else {
-      // Need to connect wallet first
       setShowWalletSelection(true);
-      // Try to connect to Phantom by default if available
       const phantomWallet = wallets.find(wallet => wallet.adapter.name === 'Phantom');
       if (phantomWallet) {
         try {
@@ -83,7 +72,6 @@ export const Login: React.FC = () => {
   };
 
   const handleSolanaAuth = async () => {
-    // Prevent multiple simultaneous authentication attempts
     if (authAttemptRef.current || hasAttemptedSolanaAuth) {
       console.log('🔧 [AUTH] Solana authentication already in progress or attempted');
       return;
@@ -105,7 +93,6 @@ export const Login: React.FC = () => {
       console.error('❌ [AUTH] Solana login failed:', err);
       setSelectedProvider(null);
       
-      // Disconnect wallet on error
       if (connected) {
         await disconnect();
       }
@@ -128,244 +115,275 @@ export const Login: React.FC = () => {
     }
   };
 
-  const getSolanaButtonText = () => {
-    if (loading && selectedProvider === 'solana') {
-      if (connected) {
-        return 'AUTHENTICATING...';
-      } else {
-        return 'CONNECTING...';
-      }
-    }
-    
-    if (connected && publicKey) {
-      return 'SOLANA CONNECTED';
-    }
-    
-    return 'SOLANA ACCESS';
-  };
-
-  const getSolanaButtonStatus = () => {
-    if (loading && selectedProvider === 'solana') {
-      return connected ? '...' : 'CONNECTING...';
-    }
-    
-    if (connected && publicKey) {
-      return '✓';
-    }
-    
-    return '→';
-  };
-
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white uppercase tracking-widest mb-2">
+    <div className="min-h-screen bg-black flex flex-col px-6">
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="w-full max-w-[250px] mx-auto space-y-16">
+        {/* Logo & Header */}
+        <div className="text-center space-y-3">
+          <div className="flex justify-center">
+            <img 
+              src="/neronlogo.svg" 
+              alt="NERON" 
+              style={{
+                width: '60px',
+                height: '60px',
+                maxWidth: '60px',
+                maxHeight: '60px'
+              }}
+            />
+          </div>
+          <h1 className="text-xl font-bold text-primary font-mono uppercase tracking-wider">
             NERON
           </h1>
-          <p className="text-xs text-gray-400 uppercase tracking-wider">
-            TACTICAL AUTHENTICATION
+          <p className="text-sm text-primary/80 font-mono">
+            Sign in/up to access neron
           </p>
-          <div className="w-full h-px bg-gradient-to-r from-transparent via-green-400 to-transparent mt-4" />
         </div>
 
         {/* Error Display */}
         {error && (
-          <div className="mb-6 p-4 bg-red-900/20 border border-red-400/30 rounded-none">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-red-400 text-sm">█</span>
-              <span className="text-red-400 text-xs font-bold uppercase tracking-wide">
-                AUTH ERROR
-              </span>
-            </div>
-            <p className="text-xs text-gray-300 mb-2 leading-relaxed">{error}</p>
+          <div className="p-4 bg-black border border-red-500">
+            <p className="text-sm text-red-400 font-mono mb-2">{error}</p>
             <button
               onClick={clearError}
-              className="text-xs text-gray-400 hover:text-white uppercase tracking-wide underline"
+              className="text-xs font-mono uppercase px-3 py-1"
+              style={{
+                backgroundColor: '#000000',
+                border: '1px solid #ef4444',
+                color: '#ef4444',
+                borderRadius: '0'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#ef4444';
+                e.currentTarget.style.color = '#000000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#000000';
+                e.currentTarget.style.color = '#ef4444';
+              }}
             >
-              DISMISS
+              Dismiss
             </button>
           </div>
         )}
 
-        {/* Authentication Methods */}
-        <div className="space-y-3">
-          {/* GitHub Access */}
+        {/* Main Login Buttons */}
+        <div className="space-y-4">
+          {/* GitHub */}
           <button
             onClick={() => handleProviderLogin('github')}
             disabled={loading}
-            className={`
-              w-full p-4 bg-gray-900/50 border border-gray-600/50 
-              hover:border-green-400/50 hover:bg-gray-800/50 
-              transition-all duration-200 text-left
-              ${loading && selectedProvider === 'github' 
-                ? 'opacity-50 cursor-not-allowed border-green-400/50' 
-                : ''
-              }
-            `}
+            className="w-full h-10 flex items-center justify-between px-4 font-mono uppercase text-sm transition-all duration-200"
+            style={{
+              backgroundColor: '#000000',
+              border: '1px solid #00FF66',
+              color: '#00FF66',
+              borderRadius: '0'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#00FF66';
+              e.currentTarget.style.color = '#000000';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#000000';
+              e.currentTarget.style.color = '#00FF66';
+            }}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-white"></div>
-                <span className="text-white text-xs font-medium uppercase tracking-wide">
-                  GITHUB ACCESS
-                </span>
-              </div>
-              <div className="text-gray-400 text-xs">
-                {loading && selectedProvider === 'github' ? 'CONNECTING...' : '→'}
-              </div>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-primary"></div>
+              <span>Github</span>
             </div>
+            <span className="text-xs">
+              {loading && selectedProvider === 'github' ? '...' : '→'}
+            </span>
           </button>
 
-          {/* Twitter Access */}
+          {/* X (Twitter) */}
           <button
             onClick={() => handleProviderLogin('twitter')}
             disabled={loading}
-            className={`
-              w-full p-4 bg-gray-900/50 border border-gray-600/50 
-              hover:border-blue-400/50 hover:bg-gray-800/50 
-              transition-all duration-200 text-left
-              ${loading && selectedProvider === 'twitter' 
-                ? 'opacity-50 cursor-not-allowed border-blue-400/50' 
-                : ''
-              }
-            `}
+            className="w-full h-10 flex items-center justify-between px-4 font-mono uppercase text-sm transition-all duration-200"
+            style={{
+              backgroundColor: '#000000',
+              border: '1px solid #00FF66',
+              color: '#00FF66',
+              borderRadius: '0'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#00FF66';
+              e.currentTarget.style.color = '#000000';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#000000';
+              e.currentTarget.style.color = '#00FF66';
+            }}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-blue-400"></div>
-                <span className="text-white text-xs font-medium uppercase tracking-wide">
-                  TWITTER ACCESS
-                </span>
-              </div>
-              <div className="text-gray-400 text-xs">
-                {loading && selectedProvider === 'twitter' ? 'CONNECTING...' : '→'}
-              </div>
+            <div className="flex items-center gap-3">
+              <svg className="w-3 h-3 fill-primary" viewBox="0 0 24 24">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.80l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+              <span>X</span>
             </div>
+            <span className="text-xs">
+              {loading && selectedProvider === 'twitter' ? '...' : '→'}
+            </span>
           </button>
 
-          {/* Solana Access - Same Style as Others */}
+          {/* Solana */}
           <button
             onClick={handleSolanaLogin}
             disabled={loading}
-            className={`
-              w-full p-4 bg-gray-900/50 border border-gray-600/50 
-              hover:border-purple-400/50 hover:bg-gray-800/50 
-              transition-all duration-200 text-left
-              ${loading && selectedProvider === 'solana' 
-                ? 'opacity-50 cursor-not-allowed border-purple-400/50' 
-                : ''
+            className="w-full h-10 flex items-center justify-between px-4 font-mono uppercase text-sm transition-all duration-200"
+            style={{
+              backgroundColor: connected && publicKey ? '#00FF6620' : '#000000',
+              border: '1px solid #00FF66',
+              color: '#00FF66',
+              borderRadius: '0'
+            }}
+            onMouseEnter={(e) => {
+              if (!(connected && publicKey)) {
+                e.currentTarget.style.backgroundColor = '#00FF66';
+                e.currentTarget.style.color = '#000000';
               }
-              ${connected && publicKey
-                ? 'border-purple-400/50 bg-purple-900/20'
-                : ''
+            }}
+            onMouseLeave={(e) => {
+              if (!(connected && publicKey)) {
+                e.currentTarget.style.backgroundColor = '#000000';
+                e.currentTarget.style.color = '#00FF66';
               }
-            `}
+            }}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-purple-400"></div>
-                <span className="text-white text-xs font-medium uppercase tracking-wide">
-                  {getSolanaButtonText()}
-                </span>
-              </div>
-              <div className="text-gray-400 text-xs">
-                {getSolanaButtonStatus()}
-              </div>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-primary"></div>
+              <span>
+                {connected && publicKey ? 'Solana Connected' : 'Solana'}
+              </span>
             </div>
+            <span className="text-xs">
+              {loading && selectedProvider === 'solana' 
+                ? (connected ? '...' : 'connecting...') 
+                : connected && publicKey 
+                ? '✓' 
+                : '→'
+              }
+            </span>
           </button>
 
-          {/* Wallet Selection Modal - Only shown when needed */}
+          {/* Wallet Selection */}
           {showWalletSelection && (
-            <div className="mt-2 p-4 bg-purple-900/10 border border-purple-400/30 rounded-none">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-purple-400 text-xs">▌</span>
-                <span className="text-purple-400 text-xs font-medium uppercase tracking-wide">
-                  SELECT WALLET
-                </span>
-              </div>
-              <WalletMultiButton className="!w-full !bg-transparent !border !border-purple-400/50 !text-purple-400 !text-xs !font-medium !uppercase !tracking-wide !rounded-none !p-2 hover:!bg-purple-400/10 hover:!text-white" />
+            <div className="p-4 bg-black border border-primary">
+              <p className="text-sm font-mono uppercase text-primary mb-3">
+                Select Wallet
+              </p>
+              <WalletMultiButton 
+                className="!w-full !text-sm !font-mono !uppercase !rounded !p-3"
+                style={{
+                  backgroundColor: '#000000 !important',
+                  border: '1px solid #00FF66 !important',
+                  color: '#00FF66 !important'
+                }}
+              />
             </div>
           )}
 
-          {/* Connected Wallet Info - Compact */}
+          {/* Connected Wallet Info */}
           {connected && publicKey && (
-            <div className="mt-2 p-3 bg-purple-900/10 border border-purple-400/30 rounded-none">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-purple-400 text-xs">▌</span>
-                  <span className="text-purple-400 text-xs font-medium uppercase tracking-wide">
-                    WALLET
-                  </span>
-                </div>
+            <div className="p-4 bg-black border border-primary">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-mono uppercase text-primary">
+                  Wallet Connected
+                </p>
                 <div className="flex gap-2">
                   <button
                     onClick={handleSolanaAuth}
-                    className="text-xs text-green-400 hover:text-white uppercase tracking-wide underline"
+                    className="text-xs font-mono uppercase px-2 py-1"
+                    style={{
+                      backgroundColor: '#000000',
+                      border: '1px solid #00FF66',
+                      color: '#00FF66',
+                      borderRadius: '0'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#00FF66';
+                      e.currentTarget.style.color = '#000000';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#000000';
+                      e.currentTarget.style.color = '#00FF66';
+                    }}
                   >
-                    TEST AUTH
+                    Auth
                   </button>
                   <button
                     onClick={handleSolanaDisconnect}
-                    className="text-xs text-gray-400 hover:text-white uppercase tracking-wide underline"
+                    className="text-xs font-mono uppercase px-2 py-1"
+                    style={{
+                      backgroundColor: '#000000',
+                      border: '1px solid #00FF66',
+                      color: '#00FF66',
+                      borderRadius: '0'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#00FF66';
+                      e.currentTarget.style.color = '#000000';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#000000';
+                      e.currentTarget.style.color = '#00FF66';
+                    }}
                   >
-                    DISCONNECT
+                    Disconnect
                   </button>
                 </div>
               </div>
-              <div className="mt-1 text-xs text-gray-400 font-mono">
+              <p className="text-xs font-mono text-primary/60">
                 {publicKey.toString().slice(0, 8)}...{publicKey.toString().slice(-8)}
-              </div>
+              </p>
             </div>
           )}
-        </div>
 
-        {/* Status Panel */}
-        <div className="mt-6 p-4 bg-gray-900/30 border border-gray-600/30">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-gray-400 text-xs">▌</span>
-            <span className="text-gray-400 text-xs font-medium uppercase tracking-wide">
-              SYSTEM STATUS
-            </span>
-          </div>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400 uppercase tracking-wide">GitHub OAuth</span>
-              <span className="text-green-400">OPERATIONAL</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400 uppercase tracking-wide">Twitter OAuth</span>
-              <span className="text-green-400">OPERATIONAL</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400 uppercase tracking-wide">Solana Web3</span>
-              <span className="text-green-400">OPERATIONAL</span>
-            </div>
+          {/* Social Links - More space above */}
+          <div className="pt-12 text-center">
+            <a 
+              href="https://x.com/neronbrain" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary/70 hover:text-primary transition-colors text-sm font-mono"
+            >
+              @neronbrain
+            </a>
           </div>
         </div>
+      </div>
+      </div>
 
-        {/* Footer */}
-        <div className="mt-8 text-center space-y-4">
-          <p className="text-xs text-gray-500 uppercase tracking-widest">
-            SECURE AUTHENTICATION REQUIRED
-          </p>
-          
+      {/* Footer - Sticky to bottom */}
+      <div className="pb-6">
+        <div className="space-y-3 text-center">
           {/* Legal Links */}
-          <div className="flex items-center justify-center gap-4 text-xs">
+          <div className="flex justify-center items-center gap-4 text-xs font-mono">
             <a 
               href="/terms" 
-              className="text-gray-400 hover:text-white transition-colors uppercase tracking-wide border-b border-transparent hover:border-gray-400"
+              className="text-primary/70 hover:text-primary transition-colors uppercase"
             >
-              TERMS OF SERVICE
+              Terms
             </a>
-            <span className="text-gray-600">|</span>
+            <span className="text-primary/40">•</span>
             <a 
               href="/privacy" 
-              className="text-gray-400 hover:text-white transition-colors uppercase tracking-wide border-b border-transparent hover:border-gray-400"
+              className="text-primary/70 hover:text-primary transition-colors uppercase"
             >
-              PRIVACY POLICY
+              Privacy
             </a>
+          </div>
+
+          {/* Copyright */}
+          <div>
+            <p className="text-xs text-primary/60 font-mono">
+              © 2025 NERON
+            </p>
           </div>
         </div>
       </div>
