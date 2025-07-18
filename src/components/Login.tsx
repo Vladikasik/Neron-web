@@ -124,7 +124,7 @@ export const Login: React.FC = () => {
         <div className="text-center space-y-3">
           <div className="flex justify-center">
             <img 
-              src="/neronlogo.svg" 
+              src="/neronlogo.png" 
               alt="NERON" 
               style={{
                 width: '60px',
@@ -344,17 +344,7 @@ export const Login: React.FC = () => {
             </div>
           )}
 
-          {/* Social Links - More space above */}
-          <div className="pt-12 text-center">
-            <a 
-              href="https://x.com/neronbrain" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-primary/70 hover:text-primary transition-colors text-sm font-mono"
-            >
-              @neronbrain
-            </a>
-          </div>
+
         </div>
       </div>
       </div>
@@ -362,6 +352,19 @@ export const Login: React.FC = () => {
       {/* Footer - Sticky to bottom */}
       <div className="pb-6">
         <div className="space-y-3 text-center">
+          {/* Social Links */}
+          <div className="flex justify-center">
+            <a 
+              href="https://x.com/neronbrain" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary/70 hover:text-primary transition-colors flex items-center gap-2"
+            >
+              <span className="text-primary font-bold text-lg">𝕏</span>
+              {/* <span className="text-sm font-mono">@neronbrain</span> */}
+            </a>
+          </div>
+
           {/* Legal Links */}
           <div className="flex justify-center items-center gap-4 text-xs font-mono">
             <a 
