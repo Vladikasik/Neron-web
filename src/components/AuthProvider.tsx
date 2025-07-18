@@ -100,28 +100,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
 
     try {
+      // Use current domain for redirect, not hardcoded domain
       const redirectTo = `${window.location.origin}/auth/callback`;
       console.log(`🔐 [AUTH] Redirect URL: ${redirectTo}`);
+      console.log(`🔐 [AUTH] Current domain: ${window.location.origin}`);
 
-      // Use identical OAuth flow for all providers
+      // Clear OAuth parameters - Twitter doesn't need these
+      const oauthOptions = {
+        redirectTo,
+        // Remove queryParams that might cause issues with Twitter
+      };
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: {
-          redirectTo,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
+        options: oauthOptions,
       });
 
       if (error) {
         console.error(`❌ [AUTH] OAuth error for ${provider}:`, error);
-        setError(error.message);
+        console.error(`❌ [AUTH] Error details:`, {
+          message: error.message,
+          status: error.status,
+          code: error.code
+        });
+        setError(`${provider.toUpperCase()} authentication failed: ${error.message}`);
         throw error;
       }
 
       console.log(`✅ [AUTH] OAuth initiated for ${provider}:`, data);
+      console.log(`🔗 [AUTH] Redirecting to ${provider.toUpperCase()} authorization...`);
       
       // The actual sign-in will be handled by the callback
       // Don't set loading to false here, let the auth state change handle it

@@ -43,6 +43,11 @@ export const Login: React.FC = () => {
 
   const handleProviderLogin = async (provider: 'github' | 'twitter') => {
     console.log(`🔐 [AUTH] User selected ${provider.toUpperCase()} login`);
+    console.log(`🔐 [AUTH] Testing OAuth configuration for ${provider.toUpperCase()}`);
+    console.log(`🔐 [AUTH] Current URL: ${window.location.href}`);
+    console.log(`🔐 [AUTH] Origin: ${window.location.origin}`);
+    console.log(`🔐 [AUTH] Expected callback: ${window.location.origin}/auth/callback`);
+    
     setSelectedProvider(provider);
     
     try {
