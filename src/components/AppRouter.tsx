@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Login } from './Login';
 import { AuthCallback } from './AuthCallback';
+import { TermsOfService } from './TermsOfService';
+import { PrivacyPolicy } from './PrivacyPolicy';
 import App from '../App';
 
 export const AppRouter: React.FC = () => {
@@ -32,8 +34,22 @@ export const AppRouter: React.FC = () => {
     }
   }, [user, loading]);
 
-  // Check if we're on the auth callback route
-  const isAuthCallback = window.location.pathname === '/auth/callback';
+  // Check current path
+  const currentPath = window.location.pathname;
+  const isAuthCallback = currentPath === '/auth/callback';
+  const isTermsPage = currentPath === '/terms';
+  const isPrivacyPage = currentPath === '/privacy';
+
+  // Handle legal pages (accessible without authentication)
+  if (isTermsPage) {
+    console.log('📄 [ROUTING] Showing Terms of Service page');
+    return <TermsOfService />;
+  }
+
+  if (isPrivacyPage) {
+    console.log('📄 [ROUTING] Showing Privacy Policy page');
+    return <PrivacyPolicy />;
+  }
 
   // Show loading screen during auth initialization
   if (loading) {

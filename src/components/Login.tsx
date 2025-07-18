@@ -346,10 +346,27 @@ export const Login: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center space-y-4">
           <p className="text-xs text-gray-500 uppercase tracking-widest">
             SECURE AUTHENTICATION REQUIRED
           </p>
+          
+          {/* Legal Links */}
+          <div className="flex items-center justify-center gap-4 text-xs">
+            <a 
+              href="/terms" 
+              className="text-gray-400 hover:text-white transition-colors uppercase tracking-wide border-b border-transparent hover:border-gray-400"
+            >
+              TERMS OF SERVICE
+            </a>
+            <span className="text-gray-600">|</span>
+            <a 
+              href="/privacy" 
+              className="text-gray-400 hover:text-white transition-colors uppercase tracking-wide border-b border-transparent hover:border-gray-400"
+            >
+              PRIVACY POLICY
+            </a>
+          </div>
         </div>
       </div>
     </div>
